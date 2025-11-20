@@ -9,7 +9,7 @@ const scriptName = "넥슨농구동호회봇";
  * (string) packageName
  */
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
-  
+  replier.reply(msg);
 }
 
 //아래 4개의 메소드는 액티비티 화면을 수정할때 사용됩니다.
