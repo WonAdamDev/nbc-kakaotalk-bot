@@ -1,0 +1,8 @@
+{
+    "main": "넥슨농구동호회봇.js",
+    "option": {
+        "apiLevel": 1,
+        "useUnifiedParams": false,
+        "useBabel": false
+    }
+}
