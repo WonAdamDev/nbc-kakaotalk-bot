@@ -6,6 +6,55 @@ function loadConfig() {
   try {
     const currentDir = new java.io.File(".").getAbsolutePath();
     Log.d("현재 작업 디렉토리: " + currentDir);
+
+    // 현재 디렉토리의 파일 목록 출력
+    try {
+      const dir = new java.io.File(".");
+      const files = dir.listFiles();
+      if (files && files.length > 0) {
+        Log.d("현재 디렉토리 파일 목록 (" + files.length + "개):");
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          const type = f.isDirectory() ? "[DIR]" : "[FILE]";
+          Log.d("  " + type + " " + f.getName());
+        }
+      } else {
+        Log.d("현재 디렉토리에 파일이 없거나 읽을 수 없습니다.");
+      }
+    } catch (e) {
+      Log.d("파일 목록 출력 실패: " + e.message);
+    }
+
+    // 몇 가지 가능성 있는 경로도 확인
+    const possibleDirs = [
+      "/storage/emulated/0/msgbot",
+      "/storage/emulated/0/msgbot/nbcbot",
+      "/sdcard/msgbot",
+      "/sdcard/msgbot/nbcbot"
+    ];
+
+    for (let i = 0; i < possibleDirs.length; i++) {
+      try {
+        const dir = new java.io.File(possibleDirs[i]);
+        if (dir.exists()) {
+          Log.d("디렉토리 존재: " + possibleDirs[i]);
+          const files = dir.listFiles();
+          if (files && files.length > 0) {
+            Log.d("  파일 목록 (" + files.length + "개):");
+            for (let j = 0; j < Math.min(files.length, 10); j++) {
+              const f = files[j];
+              const type = f.isDirectory() ? "[DIR]" : "[FILE]";
+              Log.d("    " + type + " " + f.getName());
+            }
+            if (files.length > 10) {
+              Log.d("    ... 외 " + (files.length - 10) + "개");
+            }
+          }
+        }
+      } catch (e) {
+        Log.d("디렉토리 확인 실패 (" + possibleDirs[i] + "): " + e.message);
+      }
+    }
   } catch (e) {
     Log.d("작업 디렉토리 확인 실패: " + e.message);
   }
