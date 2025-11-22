@@ -1,23 +1,38 @@
 const scriptName = "넥슨농구동호회봇";
 
-// config.json 파일 읽기 (상대 경로)
+// config.json 파일 읽기 (여러 경로 시도)
 function loadConfig() {
-  try {
-    const configData = FileStream.read("config.json");
-    return JSON.parse(configData);
-  } catch (e) {
-    // 기본값 반환
-    return {
-      serverUrl: "http://localhost:5000",
-      timeout: 5000
-    };
+  // 여러 경로 시도
+  const paths = [
+    "config.json",
+    "./config.json",
+    "/storagee/emulated/0/msgbot/넥슨농구동호회봇/config.json"
+  ];
+
+  let configData = null;
+
+  for (let i = 0; i < paths.length; i++) {
+    try {
+      configData = FileStream.read(paths[i]);
+      if (configData) {
+        break;
+      }
+    } catch (e) {
+      continue;
+    }
   }
+
+  if (!configData) {
+    throw new Error("config.json을 찾을 수 없습니다. 시도한 경로: " + paths.join(", "));
+  }
+
+  return JSON.parse(configData);
 }
 
-// 설정 로드
+// 스크립트 로드 시점에 config 로드
 const CONFIG = loadConfig();
 const SERVER_BASE_URL = CONFIG.serverUrl;
-const REQUEST_TIMEOUT = CONFIG.timeout || 10000;
+const REQUEST_TIMEOUT = CONFIG.timeout;
 
 /**
  * (string) room
