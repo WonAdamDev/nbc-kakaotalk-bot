@@ -12,9 +12,9 @@ function loadConfig() {
 
   // 여러 경로 시도
   const paths = [
-    "config.json",
-    "./config.json",
-    "/storage/emulated/0/msgbot/넥슨농구동호회봇/config.json"
+    "/storage/emulated/0/msgbot/넥슨농구동호회봇/config.json",
+    "/sdcard/msgbot/넥슨농구동호회봇/config.json",
+    "config.json"
   ];
 
   let configData = null;
