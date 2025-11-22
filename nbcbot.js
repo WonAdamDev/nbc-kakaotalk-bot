@@ -1,4 +1,4 @@
-const scriptName = "넥슨농구동호회봇";
+const scriptName = "nbcbot";
 
 // config.json 파일 읽기 (여러 경로 시도)
 function loadConfig() {
@@ -12,8 +12,8 @@ function loadConfig() {
 
   // 여러 경로 시도
   const paths = [
-    "/storage/emulated/0/msgbot/넥슨농구동호회봇/config.json",
-    "/sdcard/msgbot/넥슨농구동호회봇/config.json",
+    "/storage/emulated/0/msgbot/nbcbot/config.json",
+    "/sdcard/msgbot/nbcbot/config.json",
     "config.json"
   ];
 
