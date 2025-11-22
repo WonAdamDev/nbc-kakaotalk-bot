@@ -2,67 +2,11 @@ const scriptName = "nbcbot";
 
 // config.json 파일 읽기 (여러 경로 시도)
 function loadConfig() {
-  // 현재 작업 디렉토리 로그
-  try {
-    const currentDir = new java.io.File(".").getAbsolutePath();
-    Log.d("현재 작업 디렉토리: " + currentDir);
-
-    // 현재 디렉토리의 파일 목록 출력
-    try {
-      const currentDirFile = new java.io.File(".");
-      const currentFiles = currentDirFile.listFiles();
-      if (currentFiles && currentFiles.length > 0) {
-        Log.d("현재 디렉토리 파일 목록 (" + currentFiles.length + "개):");
-        for (let i = 0; i < currentFiles.length; i++) {
-          const currentFile = currentFiles[i];
-          const currentType = currentFile.isDirectory() ? "[DIR]" : "[FILE]";
-          Log.d("  " + currentType + " " + currentFile.getName());
-        }
-      } else {
-        Log.d("현재 디렉토리에 파일이 없거나 읽을 수 없습니다.");
-      }
-    } catch (e) {
-      Log.d("파일 목록 출력 실패: " + e.message);
-    }
-
-    // 몇 가지 가능성 있는 경로도 확인
-    const possibleDirs = [
-      "/storage/emulated/0/msgbot",
-      "/storage/emulated/0/msgbot/nbcbot",
-      "/sdcard/msgbot",
-      "/sdcard/msgbot/nbcbot"
-    ];
-
-    for (let i = 0; i < possibleDirs.length; i++) {
-      try {
-        const checkDir = new java.io.File(possibleDirs[i]);
-        if (checkDir.exists()) {
-          Log.d("디렉토리 존재: " + possibleDirs[i]);
-          const dirFiles = checkDir.listFiles();
-          if (dirFiles && dirFiles.length > 0) {
-            Log.d("  파일 목록 (" + dirFiles.length + "개):");
-            for (let j = 0; j < Math.min(dirFiles.length, 10); j++) {
-              const dirFile = dirFiles[j];
-              const fileType = dirFile.isDirectory() ? "[DIR]" : "[FILE]";
-              Log.d("    " + fileType + " " + dirFile.getName());
-            }
-            if (dirFiles.length > 10) {
-              Log.d("    ... 외 " + (dirFiles.length - 10) + "개");
-            }
-          }
-        }
-      } catch (e) {
-        Log.d("디렉토리 확인 실패 (" + possibleDirs[i] + "): " + e.message);
-      }
-    }
-  } catch (e) {
-    Log.d("작업 디렉토리 확인 실패: " + e.message);
-  }
-
   // 여러 경로 시도
   const paths = [
-    "/storage/emulated/0/msgbot/nbcbot/config.json",
-    "/sdcard/msgbot/nbcbot/config.json",
+    "/storage/emulated/0/msgbot/Bots/nbcbot/config.json",
+    "/sdcard/msgbot/Bots/nbcbot/config.json",
+    "Bots/config.json",
     "config.json"
   ];
 
