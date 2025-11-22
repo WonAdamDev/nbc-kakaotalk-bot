@@ -14,9 +14,9 @@ function loadConfig() {
       if (currentFiles && currentFiles.length > 0) {
         Log.d("현재 디렉토리 파일 목록 (" + currentFiles.length + "개):");
         for (let i = 0; i < currentFiles.length; i++) {
-          const f = currentFiles[i];
-          const type = f.isDirectory() ? "[DIR]" : "[FILE]";
-          Log.d("  " + type + " " + f.getName());
+          const currentFile = currentFiles[i];
+          const currentType = currentFile.isDirectory() ? "[DIR]" : "[FILE]";
+          Log.d("  " + currentType + " " + currentFile.getName());
         }
       } else {
         Log.d("현재 디렉토리에 파일이 없거나 읽을 수 없습니다.");
@@ -42,9 +42,9 @@ function loadConfig() {
           if (dirFiles && dirFiles.length > 0) {
             Log.d("  파일 목록 (" + dirFiles.length + "개):");
             for (let j = 0; j < Math.min(dirFiles.length, 10); j++) {
-              const f = dirFiles[j];
-              const type = f.isDirectory() ? "[DIR]" : "[FILE]";
-              Log.d("    " + type + " " + f.getName());
+              const dirFile = dirFiles[j];
+              const fileType = dirFile.isDirectory() ? "[DIR]" : "[FILE]";
+              Log.d("    " + fileType + " " + dirFile.getName());
             }
             if (dirFiles.length > 10) {
               Log.d("    ... 외 " + (dirFiles.length - 10) + "개");
