@@ -104,24 +104,48 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
  */
 function sendRequest(endpoint, params) {
   try {
-    const url = SERVER_BASE_URL + endpoint;
+    let urlString = SERVER_BASE_URL + endpoint;
 
     // GET 요청 (파라미터를 쿼리스트링으로)
-    let fullUrl = url;
     if (params && params.length > 0) {
       const queryString = params.map((p, i) => "param" + (i + 1) + "=" + encodeURIComponent(p)).join("&");
-      fullUrl = url + "?" + queryString;
+      urlString = urlString + "?" + queryString;
     }
 
     // HTTP 요청 실행
-    const conn = Jsoup.connect(fullUrl)
-      .ignoreContentType(true)
-      .ignoreHttpErrors(true)
-      .timeout(REQUEST_TIMEOUT);
+    const URL = java.net.URL;
+    const HttpURLConnection = java.net.HttpURLConnection;
+    const BufferedReader = java.io.BufferedReader;
+    const InputStreamReader = java.io.InputStreamReader;
+    const StringBuilder = java.lang.StringBuilder;
 
-    const response = conn.execute();
-    const statusCode = response.statusCode();
-    const body = response.body();
+    const url = new URL(urlString);
+    const conn = url.openConnection();
+    conn.setRequestMethod("GET");
+    conn.setConnectTimeout(REQUEST_TIMEOUT);
+    conn.setReadTimeout(REQUEST_TIMEOUT);
+
+    const statusCode = conn.getResponseCode();
+
+    // 응답 읽기
+    let inputStream;
+    if (statusCode >= 200 && statusCode < 300) {
+      inputStream = conn.getInputStream();
+    } else {
+      inputStream = conn.getErrorStream();
+    }
+
+    const reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+    const responseBuilder = new StringBuilder();
+    let line;
+
+    while ((line = reader.readLine()) !== null) {
+      responseBuilder.append(line);
+    }
+    reader.close();
+    conn.disconnect();
+
+    const body = responseBuilder.toString();
 
     if (statusCode === 200) {
       return body;
