@@ -2,28 +2,51 @@ const scriptName = "넥슨농구동호회봇";
 
 // config.json 파일 읽기 (여러 경로 시도)
 function loadConfig() {
+  // 현재 작업 디렉토리 로그
+  try {
+    const currentDir = new java.io.File(".").getAbsolutePath();
+    Log.d("현재 작업 디렉토리: " + currentDir);
+  } catch (e) {
+    Log.d("작업 디렉토리 확인 실패: " + e.message);
+  }
+
   // 여러 경로 시도
   const paths = [
     "config.json",
     "./config.json",
-    "/storagee/emulated/0/msgbot/넥슨농구동호회봇/config.json"
+    "/storage/emulated/0/msgbot/넥슨농구동호회봇/config.json"
   ];
 
   let configData = null;
+  let errors = [];
 
   for (let i = 0; i < paths.length; i++) {
     try {
+      Log.d("시도 중: " + paths[i]);
+
+      // 절대 경로로 변환하여 로그
+      try {
+        const file = new java.io.File(paths[i]);
+        Log.d("  -> 절대 경로: " + file.getAbsolutePath());
+        Log.d("  -> 파일 존재: " + file.exists());
+      } catch (e) {
+        Log.d("  -> 경로 확인 실패: " + e.message);
+      }
+
       configData = FileStream.read(paths[i]);
       if (configData) {
+        Log.d("  -> 성공!");
         break;
       }
     } catch (e) {
+      Log.d("  -> 실패: " + e.message);
+      errors.push(paths[i] + ": " + e.message);
       continue;
     }
   }
 
   if (!configData) {
-    throw new Error("config.json을 찾을 수 없습니다. 시도한 경로: " + paths.join(", "));
+    throw new Error("config.json을 찾을 수 없습니다.\n시도한 경로:\n" + errors.join("\n"));
   }
 
   return JSON.parse(configData);
