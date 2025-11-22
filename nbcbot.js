@@ -165,22 +165,60 @@ function sendRequest(endpoint, params) {
  */
 function sendPostRequest(endpoint, data) {
   try {
-    const url = SERVER_BASE_URL + endpoint;
+    const urlString = SERVER_BASE_URL + endpoint;
 
-    const conn = Jsoup.connect(url)
-      .ignoreContentType(true)
-      .ignoreHttpErrors(true)
-      .timeout(REQUEST_TIMEOUT)
-      .method(org.jsoup.Connection.Method.POST);
+    // HTTP 요청 실행
+    const URL = java.net.URL;
+    const HttpURLConnection = java.net.HttpURLConnection;
+    const BufferedReader = java.io.BufferedReader;
+    const InputStreamReader = java.io.InputStreamReader;
+    const OutputStream = java.io.OutputStream;
+    const StringBuilder = java.lang.StringBuilder;
 
-    // 데이터 추가
+    const url = new URL(urlString);
+    const conn = url.openConnection();
+    conn.setRequestMethod("POST");
+    conn.setConnectTimeout(REQUEST_TIMEOUT);
+    conn.setReadTimeout(REQUEST_TIMEOUT);
+    conn.setDoOutput(true);
+    conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+
+    // POST 데이터 생성
+    const postParams = [];
     for (let key in data) {
-      conn.data(key, String(data[key]));
+      postParams.push(encodeURIComponent(key) + "=" + encodeURIComponent(String(data[key])));
+    }
+    const postData = postParams.join("&");
+
+    // 데이터 전송
+    const os = conn.getOutputStream();
+    const writer = new java.io.OutputStreamWriter(os, "UTF-8");
+    writer.write(postData);
+    writer.flush();
+    writer.close();
+    os.close();
+
+    const statusCode = conn.getResponseCode();
+
+    // 응답 읽기
+    let inputStream;
+    if (statusCode >= 200 && statusCode < 300) {
+      inputStream = conn.getInputStream();
+    } else {
+      inputStream = conn.getErrorStream();
     }
 
-    const response = conn.execute();
-    const statusCode = response.statusCode();
-    const body = response.body();
+    const reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
+    const responseBuilder = new StringBuilder();
+    let line;
+
+    while ((line = reader.readLine()) !== null) {
+      responseBuilder.append(line);
+    }
+    reader.close();
+    conn.disconnect();
+
+    const body = responseBuilder.toString();
 
     if (statusCode === 200) {
       return body;
