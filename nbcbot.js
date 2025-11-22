@@ -9,12 +9,12 @@ function loadConfig() {
 
     // 현재 디렉토리의 파일 목록 출력
     try {
-      const dir = new java.io.File(".");
-      const files = dir.listFiles();
-      if (files && files.length > 0) {
-        Log.d("현재 디렉토리 파일 목록 (" + files.length + "개):");
-        for (let i = 0; i < files.length; i++) {
-          const f = files[i];
+      const currentDirFile = new java.io.File(".");
+      const currentFiles = currentDirFile.listFiles();
+      if (currentFiles && currentFiles.length > 0) {
+        Log.d("현재 디렉토리 파일 목록 (" + currentFiles.length + "개):");
+        for (let i = 0; i < currentFiles.length; i++) {
+          const f = currentFiles[i];
           const type = f.isDirectory() ? "[DIR]" : "[FILE]";
           Log.d("  " + type + " " + f.getName());
         }
@@ -35,19 +35,19 @@ function loadConfig() {
 
     for (let i = 0; i < possibleDirs.length; i++) {
       try {
-        const dir = new java.io.File(possibleDirs[i]);
-        if (dir.exists()) {
+        const checkDir = new java.io.File(possibleDirs[i]);
+        if (checkDir.exists()) {
           Log.d("디렉토리 존재: " + possibleDirs[i]);
-          const files = dir.listFiles();
-          if (files && files.length > 0) {
-            Log.d("  파일 목록 (" + files.length + "개):");
-            for (let j = 0; j < Math.min(files.length, 10); j++) {
-              const f = files[j];
+          const dirFiles = checkDir.listFiles();
+          if (dirFiles && dirFiles.length > 0) {
+            Log.d("  파일 목록 (" + dirFiles.length + "개):");
+            for (let j = 0; j < Math.min(dirFiles.length, 10); j++) {
+              const f = dirFiles[j];
               const type = f.isDirectory() ? "[DIR]" : "[FILE]";
               Log.d("    " + type + " " + f.getName());
             }
-            if (files.length > 10) {
-              Log.d("    ... 외 " + (files.length - 10) + "개");
+            if (dirFiles.length > 10) {
+              Log.d("    ... 외 " + (dirFiles.length - 10) + "개");
             }
           }
         }
