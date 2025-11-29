@@ -257,7 +257,7 @@ function sendRequest(endpoint, paramMap, method) {
       return "서버 오류: " + statusCode;
     }
   } catch (e) {
-    if(paramMap.user == "원동현" && paramMap.isGroupChat == false) {
+    if(paramMap.user === "원동현" && paramMap.isGroupChat === false) {
       return "요청 실패: 서버가 응답하지 않습니다.\n" + e.message;
     }
     else {
