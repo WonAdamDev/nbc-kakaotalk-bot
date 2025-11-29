@@ -92,6 +92,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       case "팀배정":
         if(params.length <= 0) {
           response = "파라미터가 부족합니다. (예시 : !팀배정 홍길동 블루 / !팀배정 홍길동)";
+          break;
         }
 
         if(params.length > 1)
