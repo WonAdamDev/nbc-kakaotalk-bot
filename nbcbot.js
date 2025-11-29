@@ -1,5 +1,11 @@
 const scriptName = "nbcbot";
 
+// HTTP 메서드 Enum (불변 객체)
+const HttpMethod = Object.freeze({
+  GET: "GET",
+  POST: "POST"
+});
+
 // config.json 파일 읽기 (여러 경로 시도)
 function loadConfig() {
   // 여러 경로 시도
@@ -73,10 +79,52 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
   // 명령어에 따라 처리
   try {
     let response = "";
+    let paramMap = {}; // JavaScript 객체로 선언
 
     switch (command) {
       case "health":
-        response = sendRequest("/health", params);
+        paramMap = {
+          timestamp: new Date().getTime()
+        };
+        response = sendRequest("/health", paramMap);
+        break;
+
+      case "팀배정":
+        if(params.length <= 1) {
+          response = "파라미터가 부족합니다. (예시 : !팀배정 홍길동 블루)";
+        }
+
+        paramMap = {
+          user: sender,
+          room: room,
+          isGroupChat: isGroupChat,
+          target: params.length <= 0 ? sender : params[0],
+          team: params.length <= 1 ? sender : params[1]
+        };
+        response = sendRequest("/api/commands/member/team", paramMap, HttpMethod.POST);
+        break;
+
+      case "팀확인":
+        paramMap = {
+          user: sender,
+          room: room,
+          isGroupChat: isGroupChat,
+          target: params.length == 0 ? sender : params[0]
+        };
+        response = sendRequest("/api/commands/member/team", paramMap, HttpMethod.GET);
+        break;
+
+      case "echo":
+      case "에코":
+        // echo 명령어는 메시지만 포함
+        if (params.length === 0) {
+          response = "에코할 메시지를 입력하세요. 예: !echo 안녕하세요";
+          break;
+        }
+        paramMap = {
+          message: params.join(" ")
+        };
+        response = sendRequest("/api/commands/echo", paramMap, HttpMethod.POST);
         break;
 
       case "help":
@@ -98,19 +146,19 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
 /**
  * 백엔드 서버에 HTTP 요청 전송
- * @param {string} endpoint - API 엔드포인트 (예: "/command_a")
- * @param {Array} params - 파라미터 배열
+ * GET: 쿼리 스트링 사용
+ * POST: JSON Body 사용
+ * @param {string} endpoint - API 엔드포인트 (예: "/api/commands/test")
+ * @param {object} paramMap - 파라미터 객체
+ * @param {string} method - HTTP 메서드 (HttpMethod.GET 또는 HttpMethod.POST, 기본값: POST)
  * @returns {string} 서버 응답
  */
-function sendRequest(endpoint, params) {
+function sendRequest(endpoint, paramMap, method) {
   try {
-    let urlString = SERVER_BASE_URL + endpoint;
+    // 기본값은 POST
+    method = method || HttpMethod.POST;
 
-    // GET 요청 (파라미터를 쿼리스트링으로)
-    if (params && params.length > 0) {
-      const queryString = params.map((p, i) => "param" + (i + 1) + "=" + encodeURIComponent(p)).join("&");
-      urlString = urlString + "?" + queryString;
-    }
+    let urlString = SERVER_BASE_URL + endpoint;
 
     // HTTP 요청 실행
     const URL = java.net.URL;
@@ -119,11 +167,37 @@ function sendRequest(endpoint, params) {
     const InputStreamReader = java.io.InputStreamReader;
     const StringBuilder = java.lang.StringBuilder;
 
+    // GET 요청: 쿼리 스트링으로 파라미터 추가
+    if (method === HttpMethod.GET && paramMap && Object.keys(paramMap).length > 0) {
+      const queryParams = [];
+      for (let key in paramMap) {
+        queryParams.push(encodeURIComponent(key) + "=" + encodeURIComponent(String(paramMap[key])));
+      }
+      urlString = urlString + "?" + queryParams.join("&");
+    }
+
     const url = new URL(urlString);
     const conn = url.openConnection();
-    conn.setRequestMethod("GET");
+    conn.setRequestMethod(method);
     conn.setConnectTimeout(REQUEST_TIMEOUT);
     conn.setReadTimeout(REQUEST_TIMEOUT);
+
+    // POST 요청: JSON body 전송
+    if (method === HttpMethod.POST) {
+      conn.setDoOutput(true);
+      conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+
+      // paramMap을 JSON 문자열로 변환
+      const jsonData = JSON.stringify(paramMap || {});
+
+      // 데이터 전송
+      const os = conn.getOutputStream();
+      const writer = new java.io.OutputStreamWriter(os, "UTF-8");
+      writer.write(jsonData);
+      writer.flush();
+      writer.close();
+      os.close();
+    }
 
     const statusCode = conn.getResponseCode();
 
@@ -148,7 +222,23 @@ function sendRequest(endpoint, params) {
     const body = responseBuilder.toString();
 
     if (statusCode === 200) {
-      return body;
+      // JSON 응답 파싱 시도
+      try {
+        const jsonResponse = JSON.parse(body);
+        // success와 response 필드가 있으면 response만 반환
+        if (jsonResponse.success !== undefined && jsonResponse.response !== undefined) {
+          return jsonResponse.response;
+        }
+        // message 필드가 있으면 반환
+        if (jsonResponse.message !== undefined) {
+          return jsonResponse.message;
+        }
+        // 그 외에는 전체 JSON을 문자열로 반환
+        return body;
+      } catch (e) {
+        // JSON 파싱 실패시 원본 반환
+        return body;
+      }
     } else {
       return "서버 오류: " + statusCode;
     }
@@ -235,7 +325,9 @@ function sendPostRequest(endpoint, data) {
  */
 function getHelpMessage() {
   return "사용 가능한 명령어:\n" +
-         "!health - 서버에 Ping 보내기\n" +
+         "!health - 서버 상태 확인\n" +
+         "!test - 테스트 명령어\n" +
+         "!echo [메시지] - 메시지 에코\n" +
          "!도움말 - 이 메시지 표시";
 }
 
