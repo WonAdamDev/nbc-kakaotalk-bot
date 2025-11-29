@@ -13,7 +13,7 @@
 
 - [메신저봇R](https://github.com/1-Byte/android-messengerbot) 또는 호환 플랫폼
 - Android 기기
-- 백엔드 서버 (설정에 따라)
+- [백엔드 서버](https://github.com/WonAdamDev/nbc-kakaotalk-bot-server)
 
 ## 설치 방법
 
@@ -37,45 +37,3 @@
 
 - `serverUrl`: 백엔드 서버 URL
 - `timeout`: HTTP 요청 타임아웃 (밀리초)
-
-### bot.json
-
-봇의 메타데이터 및 옵션 설정:
-- `main`: 메인 스크립트 파일명
-- `option.apiLevel`: API 레벨
-- `option.useUnifiedParams`: 통합 파라미터 사용 여부
-- `option.useBabel`: Babel 사용 여부
-
-## 사용 가능한 명령어
-
-| 명령어 | 설명 |
-|--------|------|
-| `!health` | 서버 상태 확인 (Ping) |
-| `!help` / `!도움말` | 도움말 메시지 표시 |
-
-## 프로젝트 구조
-
-```
-nbc-kakaotalk-bot/
-├── nbcbot.js       # 메인 봇 로직
-├── bot.json        # 봇 설정
-├── config.json     # 서버 연결 설정
-└── README.md       # 프로젝트 문서
-```
-
-## 개발
-
-### 새로운 명령어 추가하기
-
-`nbcbot.js`의 `response()` 함수에서 `switch` 문에 새로운 케이스를 추가하세요:
-
-```javascript
-case "your-command":
-  response = sendRequest("/your-endpoint", params);
-  break;
-```
-
-### HTTP 요청
-
-- **GET 요청**: `sendRequest(endpoint, params)` 사용
-- **POST 요청**: `sendPostRequest(endpoint, data)` 사용
