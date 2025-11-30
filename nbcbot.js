@@ -127,14 +127,12 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           break;
         }
         paramMap = {
-          sender: sender,
           room: room,
           member: params[0]
         };
 
         response = sendRequest("/api/commands/member", paramMap, HttpMethod.GET);
         break;
-
 
       case "멤버제거":
       case "멤버삭제":
@@ -211,7 +209,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
  * POST: JSON Body 사용
  * @param {string} endpoint - API 엔드포인트 (예: "/api/commands/test")
  * @param {object} paramMap - 파라미터 객체
- * @param {string} method - HTTP 메서드 (HttpMethod.GET 또는 HttpMethod.POST, 기본값: POST)
+ * @param {string} method - HTTP 메서드 (기본값: POST)
  * @returns {string} 서버 응답
  */
 function sendRequest(endpoint, paramMap, method) {
@@ -268,6 +266,12 @@ function sendRequest(endpoint, paramMap, method) {
       inputStream = conn.getInputStream();
     } else {
       inputStream = conn.getErrorStream();
+    }
+
+    // inputStream이 null인 경우 처리
+    if (!inputStream) {
+      conn.disconnect();
+      return "서버 응답 오류: 응답 스트림을 읽을 수 없습니다. (Status: " + statusCode + ")";
     }
 
     const reader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
