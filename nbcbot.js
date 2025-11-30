@@ -89,7 +89,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           room: room,
           timestamp: new Date().getTime(),
         };
-        response = sendRequest("/health", paramMap);
+        response = sendRequest("/health/", paramMap);
         break;
       
       case "echo":
@@ -102,7 +102,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         paramMap = {
           message: params.join(" ")
         };
-        response = sendRequest("/api/commands/echo", paramMap, HttpMethod.POST);
+        response = sendRequest("/api/commands/echo/", paramMap, HttpMethod.POST);
         break;
 
       case "멤버생성":
@@ -117,7 +117,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           member: params[0]
         };
 
-        response = sendRequest("/api/commands/member", paramMap, HttpMethod.POST);
+        response = sendRequest("/api/commands/member/", paramMap, HttpMethod.POST);
         break;
 
       case "멤버조회":
@@ -131,7 +131,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           member: params[0]
         };
 
-        response = sendRequest("/api/commands/member", paramMap, HttpMethod.GET);
+        response = sendRequest("/api/commands/member/", paramMap, HttpMethod.GET);
         break;
 
       case "멤버제거":
@@ -145,7 +145,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           room: room,
           member: params[0]
         };
-        response = sendRequest("/api/commands/member", paramMap, HttpMethod.DELETE);
+        response = sendRequest("/api/commands/member/", paramMap, HttpMethod.DELETE);
         break;
 
       case "팀배정":
@@ -171,8 +171,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
             member: params[0],
           };
         }
-        
-        response = sendRequest("/api/commands/member/team", paramMap, HttpMethod.POST);
+
+        response = sendRequest("/api/commands/member/team/", paramMap, HttpMethod.POST);
         break;
 
       case "팀확인":
@@ -182,7 +182,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           room: room,
           member: params.length == 0 ? sender : params[0]
         };
-        response = sendRequest("/api/commands/member/team", paramMap, HttpMethod.GET);
+        response = sendRequest("/api/commands/member/team/", paramMap, HttpMethod.GET);
         break;
 
       case "help":
@@ -259,6 +259,7 @@ function sendRequest(endpoint, paramMap, method) {
     }
 
     const statusCode = conn.getResponseCode();
+    Log.d("[HTTP] Status Code: " + statusCode + ", Method: " + method + ", URL: " + urlString);
 
     // 응답 읽기
     let inputStream;
@@ -271,6 +272,7 @@ function sendRequest(endpoint, paramMap, method) {
     // inputStream이 null인 경우 처리
     if (!inputStream) {
       conn.disconnect();
+      Log.d("[HTTP ERROR] InputStream is null for status: " + statusCode);
       return "서버 응답 오류: 응답 스트림을 읽을 수 없습니다. (Status: " + statusCode + ")";
     }
 
