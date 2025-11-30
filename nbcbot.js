@@ -3,7 +3,8 @@ const scriptName = "nbcbot";
 // HTTP 메서드 Enum (불변 객체)
 const HttpMethod = Object.freeze({
   GET: "GET",
-  POST: "POST"
+  POST: "POST",
+  DELETE: "DELETE"
 });
 
 // config.json 파일 읽기 (여러 경로 시도)
@@ -84,11 +85,69 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     switch (command) {
       case "health":
         paramMap = {
-          user: sender,
+          sender: sender,
           room: room,
           timestamp: new Date().getTime(),
         };
         response = sendRequest("/health", paramMap);
+        break;
+      
+      case "echo":
+      case "에코":
+        // echo 명령어는 메시지만 포함
+        if (params.length === 0) {
+          response = `에코할 메시지를 입력하세요. 예: !${command} 안녕하세요`;
+          break;
+        }
+        paramMap = {
+          message: params.join(" ")
+        };
+        response = sendRequest("/api/commands/echo", paramMap, HttpMethod.POST);
+        break;
+
+      case "멤버생성":
+      case "멤버추가":
+        if(params.length <= 0) {
+          response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)`;
+          break;
+        }
+        paramMap = {
+          sender: sender,
+          room: room,
+          member: params[0]
+        };
+
+        response = sendRequest("/api/commands/member", paramMap, HttpMethod.POST);
+        break;
+
+      case "멤버조회":
+      case "멤버":
+        if(params.length <= 0) {
+          response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)`;
+          break;
+        }
+        paramMap = {
+          sender: sender,
+          room: room,
+          member: params[0]
+        };
+
+        response = sendRequest("/api/commands/member", paramMap, HttpMethod.GET);
+        break;
+
+
+      case "멤버제거":
+      case "멤버삭제":
+        if(params.length <= 0) {
+          response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)`;
+          break;
+        }
+        paramMap = {
+          sender: sender,
+          room: room,
+          member: params[0]
+        };
+        response = sendRequest("/api/commands/member", paramMap, HttpMethod.DELETE);
         break;
 
       case "팀배정":
@@ -100,20 +159,20 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         if(params.length > 1)
         {
           paramMap = {
-            user: sender,
+            sender: sender,
             room: room,
             isGroupChat: isGroupChat,
-            target: params[0],
+            member: params[0],
             team: params[1],
           };
         }
         else
         {
           paramMap = {
-            user: sender,
+            sender: sender,
             room: room,
             isGroupChat: isGroupChat,
-            target: params[0],
+            member: params[0],
           };
         }
         
@@ -121,6 +180,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         break;
 
       case "팀확인":
+      case "팀":
         paramMap = {
           sender: sender,
           room: room,
@@ -130,21 +190,9 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         response = sendRequest("/api/commands/member/team", paramMap, HttpMethod.GET);
         break;
 
-      case "echo":
-      case "에코":
-        // echo 명령어는 메시지만 포함
-        if (params.length === 0) {
-          response = "에코할 메시지를 입력하세요. 예: !echo 안녕하세요";
-          break;
-        }
-        paramMap = {
-          message: params.join(" ")
-        };
-        response = sendRequest("/api/commands/echo", paramMap, HttpMethod.POST);
-        break;
-
       case "help":
       case "도움말":
+      case "도움":
         response = getHelpMessage();
         break;
 
@@ -198,8 +246,8 @@ function sendRequest(endpoint, paramMap, method) {
     conn.setConnectTimeout(REQUEST_TIMEOUT);
     conn.setReadTimeout(REQUEST_TIMEOUT);
 
-    // POST 요청: JSON body 전송
-    if (method === HttpMethod.POST) {
+    // POST / DELETE 요청: JSON body 전송
+    if (method === HttpMethod.POST || method === HttpMethod.DELETE) {
       conn.setDoOutput(true);
       conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
 
