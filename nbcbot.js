@@ -84,7 +84,9 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
     switch (command) {
       case "health":
         paramMap = {
-          timestamp: new Date().getTime()
+          user: sender,
+          room: room,
+          timestamp: new Date().getTime(),
         };
         response = sendRequest("/health", paramMap);
         break;
@@ -120,10 +122,10 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
       case "팀확인":
         paramMap = {
-          user: sender,
+          sender: sender,
           room: room,
           isGroupChat: isGroupChat,
-          target: params.length == 0 ? sender : params[0]
+          member: params.length == 0 ? sender : params[0]
         };
         response = sendRequest("/api/commands/member/team", paramMap, HttpMethod.GET);
         break;
@@ -257,7 +259,7 @@ function sendRequest(endpoint, paramMap, method) {
       return "서버 오류: " + statusCode;
     }
   } catch (e) {
-    if(paramMap.user === "원동현" && paramMap.isGroupChat === false) {
+    if(paramMap.sender === "원동현" && paramMap.isGroupChat === false) {
       return "요청 실패: 서버가 응답하지 않습니다.\n" + e.message;
     }
     else {
