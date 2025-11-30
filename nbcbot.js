@@ -161,7 +161,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           paramMap = {
             sender: sender,
             room: room,
-            isGroupChat: isGroupChat,
             member: params[0],
             team: params[1],
           };
@@ -171,7 +170,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           paramMap = {
             sender: sender,
             room: room,
-            isGroupChat: isGroupChat,
             member: params[0],
           };
         }
@@ -184,7 +182,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         paramMap = {
           sender: sender,
           room: room,
-          isGroupChat: isGroupChat,
           member: params.length == 0 ? sender : params[0]
         };
         response = sendRequest("/api/commands/member/team", paramMap, HttpMethod.GET);
@@ -307,7 +304,7 @@ function sendRequest(endpoint, paramMap, method) {
       return "서버 오류: " + statusCode;
     }
   } catch (e) {
-    if(paramMap.sender === "원동현" && paramMap.isGroupChat === false) {
+    if(paramMap.sender === "원동현") {
       return "요청 실패: 서버가 응답하지 않습니다.\n" + e.message;
     }
     else {
