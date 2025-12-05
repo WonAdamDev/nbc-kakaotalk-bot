@@ -121,6 +121,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         break;
 
       case "멤버조회":
+      case "멤버확인":
       case "멤버":
         if(params.length <= 0) {
           response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)`;
@@ -150,39 +151,88 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
       case "팀배정":
         if(params.length <= 0) {
-          response = "파라미터가 부족합니다. (예시 : !팀배정 홍길동 블루 / !팀배정 홍길동)";
+          response = "파라미터가 부족합니다. (예시 : !팀배정 홍길동 블루)";
           break;
         }
 
-        if(params.length > 1)
-        {
-          paramMap = {
-            sender: sender,
-            room: room,
-            member: params[0],
-            team: params[1],
-          };
-        }
-        else
-        {
-          paramMap = {
-            sender: sender,
-            room: room,
-            member: params[0],
-          };
+        if(params.length < 2) {
+          response = "팀 이름을 입력해주세요. (예시 : !팀배정 홍길동 블루)";
+          break;
         }
 
-        response = sendRequest("/api/commands/member/team/", paramMap, HttpMethod.POST);
+        paramMap = {
+          sender: sender,
+          room: room,
+          member: params[0],
+          team: params[1],
+        };
+
+        response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.POST);
+        break;
+
+      case "팀배정해제":
+        if(params.length <= 0) {
+          response = "파라미터가 부족합니다. (예시 : !팀배정해제 홍길동)";
+          break;
+        }
+
+        paramMap = {
+          sender: sender,
+          room: room,
+          member: params[0],
+        };
+
+        response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.DELETE);
         break;
 
       case "팀확인":
-      case "팀":
         paramMap = {
           sender: sender,
           room: room,
           member: params.length == 0 ? sender : params[0]
         };
-        response = sendRequest("/api/commands/member/team/", paramMap, HttpMethod.GET);
+        response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.GET);
+        break;
+
+      case "팀생성":
+      case "팀추가":
+        if(params.length <= 0) {
+          response = `파라미터가 부족합니다. (예시 : !${command} 블루)`;
+          break;
+        }
+        paramMap = {
+          sender: sender,
+          room: room,
+          team: params[0]
+        };
+        response = sendRequest("/api/commands/team/", paramMap, HttpMethod.POST);
+        break;
+
+      case "팀삭제":
+      case "팀제거":
+        if(params.length <= 0) {
+          response = `파라미터가 부족합니다. (예시 : !${command} 블루)`;
+          break;
+        }
+        paramMap = {
+          sender: sender,
+          room: room,
+          team: params[0]
+        };
+        response = sendRequest("/api/commands/team/", paramMap, HttpMethod.DELETE);
+        break;
+
+      case "팀조회":
+      case "팀정보":
+        if(params.length <= 0) {
+          response = `파라미터가 부족합니다. (예시 : !${command} 블루)`;
+          break;
+        }
+        paramMap = {
+          room: room,
+          team: params[0]
+        };
+        response = sendRequest("/api/commands/team/", paramMap, HttpMethod.GET);
         break;
 
       case "help":
@@ -334,10 +384,16 @@ function getHelpMessage() {
          "!멤버삭제 [이름] - 멤버 제거\n" +
          "  예: !멤버삭제 홍길동\n\n" +
          "[팀 관리]\n" +
-         "!팀배정 [이름] [팀] - 팀 배정\n" +
+         "!팀생성 [팀명] - 팀 생성\n" +
+         "  예: !팀생성 블루\n" +
+         "!팀조회 [팀명] - 팀 정보 조회\n" +
+         "  예: !팀조회 블루\n" +
+         "!팀삭제 [팀명] - 팀 삭제\n" +
+         "  예: !팀삭제 블루\n" +
+         "!팀배정 [이름] [팀] - 멤버를 팀에 배정\n" +
          "  예: !팀배정 홍길동 블루\n" +
-         "!팀배정 [이름] - 팀 배정 해제\n" +
-         "  예: !팀배정 홍길동\n" +
+         "!팀배정해제 [이름] - 팀 배정 해제\n" +
+         "  예: !팀배정해제 홍길동\n" +
          "!팀확인 [이름] - 팀 확인 (생략 시 본인)\n" +
          "  예: !팀확인 / !팀확인 홍길동\n\n" +
          "[기타]\n" +
