@@ -338,7 +338,7 @@ function sendRequest(endpoint, paramMap, method) {
 
     const body = responseBuilder.toString();
 
-    if (statusCode === 200) {
+    if (statusCode === 200 || statusCode === 400 || statusCode === 404) {
       // JSON 응답 파싱 시도
       try {
         const jsonResponse = JSON.parse(body);
