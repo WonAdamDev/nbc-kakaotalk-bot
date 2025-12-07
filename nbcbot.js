@@ -542,6 +542,34 @@ function formatGameCreateResponse(data) {
          "※ 위 링크에서 선수 도착, 쿼터 관리, 점수 기록 등 모든 경기 관리가 가능합니다.";
 }
 
+// 숫자를 2자리로 패딩하는 헬퍼 함수 (padStart 대체)
+function padZero(num) {
+  return num < 10 ? '0' + num : String(num);
+}
+
+// ISO 날짜 문자열을 파싱하는 헬퍼 함수
+function parseISODateTime(isoString) {
+  try {
+    // ISO 8601: 2024-12-07T15:30:00
+    var parts = isoString.split('T');
+    var datePart = parts[0]; // 2024-12-07
+    var timePart = parts[1]; // 15:30:00 또는 15:30:00.123Z
+
+    if (timePart) {
+      // Z나 밀리초 제거
+      timePart = timePart.split('.')[0].split('Z')[0];
+      var timeParts = timePart.split(':');
+      return {
+        hours: parseInt(timeParts[0]),
+        minutes: parseInt(timeParts[1])
+      };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // 경기 목록 응답 포맷팅
 function formatGameListResponse(data) {
   if (typeof data !== 'object') return data;
@@ -550,22 +578,22 @@ function formatGameListResponse(data) {
     return "생성된 경기가 없습니다.\n!경기생성 명령어로 새 경기를 만들어주세요.";
   }
 
-  let result = "=== " + data.room + " 경기 목록 ===\n\n";
+  var result = "=== " + data.room + " 경기 목록 ===\n\n";
 
-  for (let i = 0; i < data.games.length; i++) {
-    const game = data.games[i];
-    const statusEmoji = game.status === '진행중' ? '▶️' : game.status === '종료' ? '✅' : '⏸️';
+  for (var i = 0; i < data.games.length; i++) {
+    var game = data.games[i];
+    var statusEmoji = game.status === '진행중' ? '▶️' : game.status === '종료' ? '✅' : '⏸️';
 
     // 날짜 포맷팅 (YYYY-MM-DD -> MM/DD)
-    const dateStr = game.date ? game.date.substring(5).replace('-', '/') : '';
+    var dateStr = game.date ? game.date.substring(5).replace('-', '/') : '';
 
     // 시간 포맷팅 (ISO -> HH:MM)
-    let timeStr = '';
+    var timeStr = '';
     if (game.created_at) {
-      const dt = new java.util.Date(game.created_at);
-      const hours = String(dt.getHours()).padStart(2, '0');
-      const mins = String(dt.getMinutes()).padStart(2, '0');
-      timeStr = hours + ":" + mins;
+      var timeData = parseISODateTime(game.created_at);
+      if (timeData) {
+        timeStr = padZero(timeData.hours) + ":" + padZero(timeData.minutes);
+      }
     }
 
     result += (i + 1) + ". " + statusEmoji + " " + game.status;
