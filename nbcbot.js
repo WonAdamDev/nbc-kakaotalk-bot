@@ -244,6 +244,21 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         response = formatTeamGetResponse(response);
         break;
 
+      case "경기생성":
+      case "게임생성":
+        // 날짜 파라미터 optional (기본값: 오늘)
+        const gameDate = params.length > 0 ? params[0] : null;
+        paramMap = {
+          room: room,
+          creator: sender
+        };
+        if (gameDate) {
+          paramMap.date = gameDate;
+        }
+        response = sendRequest("/api/game/create", paramMap, HttpMethod.POST);
+        response = formatGameCreateResponse(response);
+        break;
+
       case "help":
       case "도움말":
       case "도움":
@@ -500,6 +515,22 @@ function formatMemberTeamGetResponse(data) {
   }
 }
 
+// 경기 생성 응답 포맷팅
+function formatGameCreateResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (!data.game_id || !data.url) {
+    return "경기 생성에 실패했습니다.";
+  }
+
+  return "=== 경기가 생성되었습니다 ===\n\n" +
+         "경기 ID: " + data.game_id + "\n" +
+         "생성자: " + data.game.creator + "\n" +
+         "날짜: " + data.game.date + "\n\n" +
+         "경기 관리 페이지:\n" + data.url + "\n\n" +
+         "※ 위 링크에서 선수 도착, 쿼터 관리, 점수 기록 등 모든 경기 관리가 가능합니다.";
+}
+
 /**
  * 도움말 메시지 반환
  */
@@ -507,6 +538,11 @@ function getHelpMessage() {
   return "=== NBC 봇 사용 가능한 명령어 ===\n\n" +
          "[서버 관리]\n" +
          "!health - 서버 상태 확인\n\n" +
+         "[경기 관리]\n" +
+         "!경기생성 [날짜] - 경기 생성 (날짜 생략 시 오늘)\n" +
+         "  예: !경기생성\n" +
+         "  예: !경기생성 2024-01-25\n" +
+         "  ※ 경기 URL 반환 (웹에서 모든 관리 가능)\n\n" +
          "[멤버 관리]\n" +
          "!멤버생성 [이름] - 멤버 생성\n" +
          "  예: !멤버생성 홍길동\n" +
