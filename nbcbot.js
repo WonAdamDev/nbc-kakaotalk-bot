@@ -118,6 +118,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         };
 
         response = sendRequest("/api/commands/member/", paramMap, HttpMethod.POST);
+        response = formatMemberPostResponse(response);
         break;
 
       case "멤버조회":
@@ -133,6 +134,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         };
 
         response = sendRequest("/api/commands/member/", paramMap, HttpMethod.GET);
+        response = formatMemberGetResponse(response);
         break;
 
       case "멤버제거":
@@ -147,6 +149,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           member: params[0]
         };
         response = sendRequest("/api/commands/member/", paramMap, HttpMethod.DELETE);
+        response = formatMemberDeleteResponse(response);
         break;
 
       case "팀배정":
@@ -168,6 +171,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         };
 
         response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.POST);
+        response = formatMemberTeamPostResponse(response);
         break;
 
       case "팀배정해제":
@@ -183,6 +187,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         };
 
         response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.DELETE);
+        response = formatMemberTeamDeleteResponse(response);
         break;
 
       case "팀확인":
@@ -192,6 +197,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           member: params.length == 0 ? sender : params[0]
         };
         response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.GET);
+        response = formatMemberTeamGetResponse(response);
         break;
 
       case "팀생성":
@@ -206,6 +212,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           team: params[0]
         };
         response = sendRequest("/api/commands/team/", paramMap, HttpMethod.POST);
+        response = formatTeamPostResponse(response);
         break;
 
       case "팀삭제":
@@ -220,6 +227,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           team: params[0]
         };
         response = sendRequest("/api/commands/team/", paramMap, HttpMethod.DELETE);
+        response = formatTeamDeleteResponse(response);
         break;
 
       case "팀조회":
@@ -233,6 +241,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           team: params[0]
         };
         response = sendRequest("/api/commands/team/", paramMap, HttpMethod.GET);
+        response = formatTeamGetResponse(response);
         break;
 
       case "help":
@@ -342,13 +351,18 @@ function sendRequest(endpoint, paramMap, method) {
       // JSON 응답 파싱 시도
       try {
         const jsonResponse = JSON.parse(body);
-        // success와 response 필드가 있으면 response만 반환
-        if (jsonResponse.success !== undefined && jsonResponse.response !== undefined) {
-          return jsonResponse.response;
+
+        // data 필드가 있으면 data 객체를 반환 (새로운 방식)
+        if (jsonResponse.data !== undefined) {
+          return jsonResponse.data;
         }
         // message 필드가 있으면 반환
         if (jsonResponse.message !== undefined) {
           return jsonResponse.message;
+        }
+        // success와 response 필드가 있으면 response만 반환 (하위 호환성)
+        if (jsonResponse.success !== undefined && jsonResponse.response !== undefined) {
+          return jsonResponse.response;
         }
         // 그 외에는 전체 JSON을 문자열로 반환
         return body;
@@ -366,6 +380,123 @@ function sendRequest(endpoint, paramMap, method) {
     else {
       return "요청 실패: 서버가 응답하지 않습니다.";
     }
+  }
+}
+
+/**
+ * 응답 데이터 포맷팅 함수들
+ */
+
+// 멤버 조회 응답 포맷팅
+function formatMemberGetResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (data.exists === false) {
+    return data.member + "님은 멤버가 아닙니다.";
+  }
+
+  const teamText = data.team || "undefined";
+  return data.member + "님 정보\n팀: " + teamText;
+}
+
+// 멤버 생성 응답 포맷팅
+function formatMemberPostResponse(data) {
+  if (typeof data !== 'object') return data;
+  return data.member + "님이 멤버가 되었습니다.";
+}
+
+// 멤버 삭제 응답 포맷팅
+function formatMemberDeleteResponse(data) {
+  if (typeof data !== 'object') return data;
+  return data.member + "님이 멤버에서 제거되었습니다.";
+}
+
+// 팀 조회 응답 포맷팅
+function formatTeamGetResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (data.exists === false) {
+    return data.team + "팀은 존재하지 않습니다.";
+  }
+
+  if (data.member_count === 0) {
+    return data.team + "팀 정보\n멤버 수: 0명";
+  }
+
+  const memberList = data.members.join(", ");
+  return data.team + "팀 정보\n멤버 수: " + data.member_count + "명\n멤버: " + memberList;
+}
+
+// 팀 생성 응답 포맷팅
+function formatTeamPostResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (data.created === true) {
+    return data.team + "팀이 생성되었습니다.";
+  } else if (data.reason === 'already_exists') {
+    return data.team + "팀이 이미 존재합니다.";
+  }
+
+  return String(data);
+}
+
+// 팀 삭제 응답 포맷팅
+function formatTeamDeleteResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (data.deleted === true) {
+    return data.team + "팀이 삭제되었습니다.";
+  } else if (data.reason === 'not_found') {
+    return data.team + "팀은 존재하지 않습니다.";
+  } else if (data.reason === 'has_members') {
+    return data.team + "팀에 " + data.member_count + "명의 멤버가 있어 삭제할 수 없습니다.";
+  }
+
+  return String(data);
+}
+
+// 팀 배정 응답 포맷팅
+function formatMemberTeamPostResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (data.assigned === true) {
+    return data.member + "님이 " + data.team + "팀에 배정되었습니다.";
+  } else if (data.reason === 'member_not_found') {
+    return data.member + "님은 멤버가 아닙니다.";
+  } else if (data.reason === 'team_not_found') {
+    return data.team + "팀은 존재하지 않습니다.";
+  }
+
+  return String(data);
+}
+
+// 팀 배정 해제 응답 포맷팅
+function formatMemberTeamDeleteResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (data.unassigned === true) {
+    return data.member + "님의 팀 배정(" + data.previous_team + ")이 해제되었습니다.";
+  } else if (data.reason === 'member_not_found') {
+    return data.member + "님은 멤버가 아닙니다.";
+  } else if (data.reason === 'no_team_assigned') {
+    return data.member + "님은 팀에 배정되어 있지 않습니다.";
+  }
+
+  return String(data);
+}
+
+// 팀 확인 응답 포맷팅
+function formatMemberTeamGetResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (data.is_member === false) {
+    return data.member + "님은 멤버가 아닙니다.";
+  }
+
+  if (data.team) {
+    return data.member + "님은 " + data.team + "팀에 배정되어 있습니다.";
+  } else {
+    return data.member + "님은 팀에 배정되어 있지 않습니다.";
   }
 }
 
