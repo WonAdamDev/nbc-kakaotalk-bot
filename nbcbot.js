@@ -259,6 +259,16 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         response = formatGameCreateResponse(response);
         break;
 
+      case "경기목록":
+      case "경기조회":
+      case "게임목록":
+        paramMap = {
+          room: room
+        };
+        response = sendRequest("/api/game/list", paramMap, HttpMethod.GET);
+        response = formatGameListResponse(response);
+        break;
+
       case "help":
       case "도움말":
       case "도움":
@@ -362,7 +372,8 @@ function sendRequest(endpoint, paramMap, method) {
 
     const body = responseBuilder.toString();
 
-    if (statusCode === 200 || statusCode === 400 || statusCode === 404) {
+    // 2xx 성공 응답 (200 OK, 201 Created 등) 또는 4xx 에러 응답 처리
+    if (statusCode >= 200 && statusCode < 500) {
       // JSON 응답 파싱 시도
       try {
         const jsonResponse = JSON.parse(body);
@@ -531,6 +542,55 @@ function formatGameCreateResponse(data) {
          "※ 위 링크에서 선수 도착, 쿼터 관리, 점수 기록 등 모든 경기 관리가 가능합니다.";
 }
 
+// 경기 목록 응답 포맷팅
+function formatGameListResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (data.count === 0) {
+    return "생성된 경기가 없습니다.\n!경기생성 명령어로 새 경기를 만들어주세요.";
+  }
+
+  let result = "=== " + data.room + " 경기 목록 ===\n\n";
+
+  for (let i = 0; i < data.games.length; i++) {
+    const game = data.games[i];
+    const statusEmoji = game.status === '진행중' ? '▶️' : game.status === '종료' ? '✅' : '⏸️';
+
+    // 날짜 포맷팅 (YYYY-MM-DD -> MM/DD)
+    const dateStr = game.date ? game.date.substring(5).replace('-', '/') : '';
+
+    // 시간 포맷팅 (ISO -> HH:MM)
+    let timeStr = '';
+    if (game.created_at) {
+      const dt = new java.util.Date(game.created_at);
+      const hours = String(dt.getHours()).padStart(2, '0');
+      const mins = String(dt.getMinutes()).padStart(2, '0');
+      timeStr = hours + ":" + mins;
+    }
+
+    result += (i + 1) + ". " + statusEmoji + " " + game.status;
+    if (game.status === '진행중') {
+      result += " (Q" + game.current_quarter + ")";
+    }
+    result += "\n";
+    result += "   ID: " + game.game_id + "\n";
+    result += "   날짜: " + dateStr + " " + timeStr + "\n";
+    if (game.creator) {
+      result += "   생성: " + game.creator + "\n";
+    }
+    result += "   URL: " + game.url + "\n";
+
+    if (i < data.games.length - 1) {
+      result += "\n";
+    }
+  }
+
+  result += "\n총 " + data.count + "개 경기";
+  result += "\n\n※ 최근 30일 이내 경기만 표시됩니다.";
+
+  return result;
+}
+
 /**
  * 도움말 메시지 반환
  */
@@ -542,7 +602,8 @@ function getHelpMessage() {
          "!경기생성 [날짜] - 경기 생성 (날짜 생략 시 오늘)\n" +
          "  예: !경기생성\n" +
          "  예: !경기생성 2024-01-25\n" +
-         "  ※ 경기 URL 반환 (웹에서 모든 관리 가능)\n\n" +
+         "!경기목록 - 이 방의 경기 목록 조회\n" +
+         "  ※ 최근 30일 이내 경기만 표시\n\n" +
          "[멤버 관리]\n" +
          "!멤버생성 [이름] - 멤버 생성\n" +
          "  예: !멤버생성 홍길동\n" +
