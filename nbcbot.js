@@ -263,9 +263,11 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       case "경기조회":
       case "게임목록":
         paramMap = {
-          room: room
+          room: room,
+          days: 7,
+          limit: 100
         };
-        response = sendRequest("/api/game/list", paramMap, HttpMethod.GET);
+        response = sendRequest("/api/game/all", paramMap, HttpMethod.GET);
         response = formatGameListResponse(response);
         break;
 
@@ -574,14 +576,19 @@ function parseISODateTime(isoString) {
 function formatGameListResponse(data) {
   if (typeof data !== 'object') return data;
 
-  if (data.count === 0) {
+  // /api/game/all 응답 구조에 맞게 수정
+  var games = data.games || [];
+  var totalItems = data.pagination ? data.pagination.total_items : games.length;
+  var roomName = games.length > 0 && games[0].room ? games[0].room : "전체";
+
+  if (totalItems === 0) {
     return "생성된 경기가 없습니다.\n!경기생성 명령어로 새 경기를 만들어주세요.";
   }
 
-  var result = "=== " + data.room + " 경기 목록 ===\n\n";
+  var result = "=== " + roomName + " 경기 목록 ===\n\n";
 
-  for (var i = 0; i < data.games.length; i++) {
-    var game = data.games[i];
+  for (var i = 0; i < games.length; i++) {
+    var game = games[i];
     var statusEmoji = game.status === '진행중' ? '▶️' : game.status === '종료' ? '✅' : '⏸️';
 
     // 날짜 포맷팅 (YYYY-MM-DD -> MM/DD)
@@ -608,12 +615,12 @@ function formatGameListResponse(data) {
     }
     result += "   URL: " + game.url + "\n";
 
-    if (i < data.games.length - 1) {
+    if (i < games.length - 1) {
       result += "\n";
     }
   }
 
-  result += "\n총 " + data.count + "개 경기";
+  result += "\n총 " + totalItems + "개 경기";
   result += "\n\n※ 최근 7일 이내 경기만 표시됩니다.";
 
   return result;
