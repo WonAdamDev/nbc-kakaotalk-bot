@@ -614,7 +614,7 @@ function formatGameListResponse(data) {
   }
 
   result += "\n총 " + data.count + "개 경기";
-  result += "\n\n※ 최근 30일 이내 경기만 표시됩니다.";
+  result += "\n\n※ 최근 7일 이내 경기만 표시됩니다.";
 
   return result;
 }
@@ -631,7 +631,7 @@ function getHelpMessage() {
          "  예: !경기생성\n" +
          "  예: !경기생성 2024-01-25\n" +
          "!경기목록 - 이 방의 경기 목록 조회\n" +
-         "  ※ 최근 30일 이내 경기만 표시\n\n" +
+         "  ※ 최근 7일 이내 경기만 표시\n\n" +
          "[멤버 관리]\n" +
          "!멤버생성 [이름] - 멤버 생성\n" +
          "  예: !멤버생성 홍길동\n" +
