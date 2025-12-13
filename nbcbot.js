@@ -156,6 +156,15 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         response = formatMemberDeleteResponse(response);
         break;
 
+      case "멤버목록":
+      case "멤버리스트":
+        paramMap = {
+          room: room
+        };
+        response = sendRequest("/api/commands/member/list", paramMap, HttpMethod.GET);
+        response = formatMemberListResponse(response);
+        break;
+
       case "팀배정":
         if(params.length <= 0) {
           response = "파라미터가 부족합니다. (예시 : !팀배정 블루 홍길동)\n동명이인이 있는 경우: !팀배정 블루 홍길동 MEM_XXXXXXXX";
@@ -256,6 +265,15 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         };
         response = sendRequest("/api/commands/team/", paramMap, HttpMethod.GET);
         response = formatTeamGetResponse(response);
+        break;
+
+      case "팀목록":
+      case "팀리스트":
+        paramMap = {
+          room: room
+        };
+        response = sendRequest("/api/commands/team/list", paramMap, HttpMethod.GET);
+        response = formatTeamListResponse(response);
         break;
 
       case "경기생성":
@@ -719,6 +737,71 @@ function formatGameListResponse(data) {
   return result;
 }
 
+// 멤버 목록 응답 포맷팅
+function formatMemberListResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  var responseData = data.data || {};
+  var members = responseData.members || [];
+  var count = responseData.count || 0;
+  var roomName = responseData.room || "이 방";
+
+  if (count === 0) {
+    return "등록된 멤버가 없습니다.\n!멤버생성 명령어로 멤버를 추가해주세요.";
+  }
+
+  var result = "=== " + roomName + " 멤버 목록 ===\n\n";
+
+  for (var i = 0; i < members.length; i++) {
+    var member = members[i];
+    result += (i + 1) + ". " + member.name;
+    if (member.team) {
+      result += " (" + member.team + "팀)";
+    } else {
+      result += " (팀 미배정)";
+    }
+    result += "\n";
+    result += "   ID: " + member.member_id + "\n";
+    if (i < members.length - 1) {
+      result += "\n";
+    }
+  }
+
+  result += "\n총 " + count + "명";
+
+  return result;
+}
+
+// 팀 목록 응답 포맷팅
+function formatTeamListResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  var responseData = data.data || {};
+  var teams = responseData.teams || [];
+  var count = responseData.count || 0;
+  var roomName = responseData.room || "이 방";
+
+  if (count === 0) {
+    return "생성된 팀이 없습니다.\n!팀생성 명령어로 팀을 추가해주세요.";
+  }
+
+  var result = "=== " + roomName + " 팀 목록 ===\n\n";
+
+  for (var i = 0; i < teams.length; i++) {
+    var team = teams[i];
+    result += (i + 1) + ". " + team.name + "팀";
+    result += " (멤버 " + team.member_count + "명)\n";
+    result += "   ID: " + team.team_id + "\n";
+    if (i < teams.length - 1) {
+      result += "\n";
+    }
+  }
+
+  result += "\n총 " + count + "개 팀";
+
+  return result;
+}
+
 /**
  * 도움말 메시지 반환
  */
@@ -737,7 +820,8 @@ function getHelpMessage() {
          "  예: !멤버조회 홍길동\n" +
          "!멤버삭제 [이름] [ID(선택)] - 멤버 제거\n" +
          "  예: !멤버삭제 홍길동\n" +
-         "  동명이인: !멤버삭제 홍길동 MEM_XXXXXXXX\n\n" +
+         "  동명이인: !멤버삭제 홍길동 MEM_XXXXXXXX\n" +
+         "!멤버목록 - 이 방의 멤버 목록 조회\n\n" +
          "[팀 관리]\n" +
          "!팀생성 [팀명] - 팀 생성\n" +
          "  예: !팀생성 블루\n" +
@@ -745,6 +829,7 @@ function getHelpMessage() {
          "  예: !팀조회 블루\n" +
          "!팀삭제 [팀명] - 팀 삭제\n" +
          "  예: !팀삭제 블루\n" +
+         "!팀목록 - 이 방의 팀 목록 조회\n" +
          "!팀배정 [팀] [이름] [ID(선택)] - 멤버를 팀에 배정\n" +
          "  예: !팀배정 블루 홍길동\n" +
          "  동명이인: !팀배정 블루 홍길동 MEM_XXXXXXXX\n" +
