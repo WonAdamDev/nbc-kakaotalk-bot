@@ -140,7 +140,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       case "멤버제거":
       case "멤버삭제":
         if(params.length <= 0) {
-          response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)`;
+          response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)\n동명이인이 있는 경우: !${command} 홍길동 MEM_XXXXXXXX`;
           break;
         }
         paramMap = {
@@ -148,27 +148,36 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           room: room,
           member: params[0]
         };
+        // member_id가 제공된 경우 (params[1])
+        if (params.length >= 2) {
+          paramMap.member_id = params[1];
+        }
         response = sendRequest("/api/commands/member/", paramMap, HttpMethod.DELETE);
         response = formatMemberDeleteResponse(response);
         break;
 
       case "팀배정":
         if(params.length <= 0) {
-          response = "파라미터가 부족합니다. (예시 : !팀배정 홍길동 블루)";
+          response = "파라미터가 부족합니다. (예시 : !팀배정 블루 홍길동)\n동명이인이 있는 경우: !팀배정 블루 홍길동 MEM_XXXXXXXX";
           break;
         }
 
         if(params.length < 2) {
-          response = "팀 이름을 입력해주세요. (예시 : !팀배정 홍길동 블루)";
+          response = "멤버 이름을 입력해주세요. (예시 : !팀배정 블루 홍길동)";
           break;
         }
 
         paramMap = {
           sender: sender,
           room: room,
-          member: params[0],
-          team: params[1],
+          team: params[0],
+          member: params[1]
         };
+
+        // member_id가 제공된 경우 (params[2])
+        if (params.length >= 3) {
+          paramMap.member_id = params[2];
+        }
 
         response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.POST);
         response = formatMemberTeamPostResponse(response);
@@ -176,15 +185,20 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
 
       case "팀배정해제":
         if(params.length <= 0) {
-          response = "파라미터가 부족합니다. (예시 : !팀배정해제 홍길동)";
+          response = "파라미터가 부족합니다. (예시 : !팀배정해제 홍길동)\n동명이인이 있는 경우: !팀배정해제 홍길동 MEM_XXXXXXXX";
           break;
         }
 
         paramMap = {
           sender: sender,
           room: room,
-          member: params[0],
+          member: params[0]
         };
+
+        // member_id가 제공된 경우 (params[1])
+        if (params.length >= 2) {
+          paramMap.member_id = params[1];
+        }
 
         response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.DELETE);
         response = formatMemberTeamDeleteResponse(response);
@@ -423,12 +437,23 @@ function formatMemberGetResponse(data) {
     return data.member + "님은 멤버가 아닙니다.";
   }
 
-  const teamText = data.team || "undefined";
+  // 동명이인 체크
+  if (data.is_unique === false && data.duplicates) {
+    var result = data.member + "님은 동명이인이 " + data.count + "명 있습니다.\n";
+    result += "member_id를 함께 입력해주세요.\n\n";
+    for (var i = 0; i < data.duplicates.length; i++) {
+      var dup = data.duplicates[i];
+      result += "ID: " + dup.member_id + " (팀: " + (dup.team || "없음") + ")\n";
+    }
+    return result;
+  }
+
+  const teamText = data.team || "없음";
   let result = data.member + "님 정보\n팀: " + teamText;
 
-  // member_id가 있으면 마지막 4자리 표시
+  // member_id 전체 표시
   if (data.member_id) {
-    result += "\nID: " + data.member_id.substring(data.member_id.length - 4);
+    result += "\nID: " + data.member_id;
   }
 
   return result;
@@ -443,6 +468,19 @@ function formatMemberPostResponse(data) {
 // 멤버 삭제 응답 포맷팅
 function formatMemberDeleteResponse(data) {
   if (typeof data !== 'object') return data;
+
+  // 동명이인 체크
+  if (data.is_unique === false && data.duplicates) {
+    var result = data.member + "님은 동명이인이 " + data.count + "명 있습니다.\n";
+    result += "member_id를 함께 입력해주세요.\n";
+    result += "예: !멤버삭제 " + data.member + " MEM_XXXXXXXX\n\n";
+    for (var i = 0; i < data.duplicates.length; i++) {
+      var dup = data.duplicates[i];
+      result += "ID: " + dup.member_id + " (팀: " + (dup.team || "없음") + ")\n";
+    }
+    return result;
+  }
+
   return data.member + "님이 멤버에서 제거되었습니다.";
 }
 
@@ -513,6 +551,18 @@ function formatTeamDeleteResponse(data) {
 function formatMemberTeamPostResponse(data) {
   if (typeof data !== 'object') return data;
 
+  // 동명이인 체크
+  if (data.reason === 'duplicate_members' && data.duplicates) {
+    var result = data.member + "님은 동명이인이 " + data.count + "명 있습니다.\n";
+    result += "member_id를 함께 입력해주세요.\n";
+    result += "예: !팀배정 " + data.team + " " + data.member + " MEM_XXXXXXXX\n\n";
+    for (var i = 0; i < data.duplicates.length; i++) {
+      var dup = data.duplicates[i];
+      result += "ID: " + dup.member_id + " (팀: " + (dup.team || "없음") + ")\n";
+    }
+    return result;
+  }
+
   if (data.assigned === true) {
     return data.member + "님이 " + data.team + "팀에 배정되었습니다.";
   } else if (data.reason === 'member_not_found') {
@@ -527,6 +577,18 @@ function formatMemberTeamPostResponse(data) {
 // 팀 배정 해제 응답 포맷팅
 function formatMemberTeamDeleteResponse(data) {
   if (typeof data !== 'object') return data;
+
+  // 동명이인 체크
+  if (data.reason === 'duplicate_members' && data.duplicates) {
+    var result = data.member + "님은 동명이인이 " + data.count + "명 있습니다.\n";
+    result += "member_id를 함께 입력해주세요.\n";
+    result += "예: !팀배정해제 " + data.member + " MEM_XXXXXXXX\n\n";
+    for (var i = 0; i < data.duplicates.length; i++) {
+      var dup = data.duplicates[i];
+      result += "ID: " + dup.member_id + " (팀: " + (dup.team || "없음") + ")\n";
+    }
+    return result;
+  }
 
   if (data.unassigned === true) {
     return data.member + "님의 팀 배정(" + data.previous_team + ")이 해제되었습니다.";
@@ -575,24 +637,24 @@ function padZero(num) {
   return num < 10 ? '0' + num : String(num);
 }
 
-// ISO 날짜 문자열을 파싱하는 헬퍼 함수
+// ISO 날짜 문자열을 파싱하는 헬퍼 함수 (UTC -> KST 변환)
 function parseISODateTime(isoString) {
   try {
-    // ISO 8601: 2024-12-07T15:30:00
-    var parts = isoString.split('T');
-    var datePart = parts[0]; // 2024-12-07
-    var timePart = parts[1]; // 15:30:00 또는 15:30:00.123Z
+    // ISO 8601: 2024-12-07T15:30:00Z (UTC 시간)
+    var date = new Date(isoString);
 
-    if (timePart) {
-      // Z나 밀리초 제거
-      timePart = timePart.split('.')[0].split('Z')[0];
-      var timeParts = timePart.split(':');
-      return {
-        hours: parseInt(timeParts[0]),
-        minutes: parseInt(timeParts[1])
-      };
-    }
-    return null;
+    // KST는 UTC+9
+    var kstOffset = 9 * 60; // 9시간을 분으로 변환
+    var utcMinutes = date.getUTCHours() * 60 + date.getUTCMinutes();
+    var kstMinutes = utcMinutes + kstOffset;
+
+    var hours = Math.floor(kstMinutes / 60) % 24;
+    var minutes = kstMinutes % 60;
+
+    return {
+      hours: hours,
+      minutes: minutes
+    };
   } catch (e) {
     return null;
   }
@@ -675,8 +737,9 @@ function getHelpMessage() {
          "  예: !멤버생성 홍길동\n" +
          "!멤버조회 [이름] - 멤버 정보 조회\n" +
          "  예: !멤버조회 홍길동\n" +
-         "!멤버삭제 [이름] - 멤버 제거\n" +
-         "  예: !멤버삭제 홍길동\n\n" +
+         "!멤버삭제 [이름] [ID(선택)] - 멤버 제거\n" +
+         "  예: !멤버삭제 홍길동\n" +
+         "  동명이인: !멤버삭제 홍길동 MEM_XXXXXXXX\n\n" +
          "[팀 관리]\n" +
          "!팀생성 [팀명] - 팀 생성\n" +
          "  예: !팀생성 블루\n" +
@@ -684,10 +747,12 @@ function getHelpMessage() {
          "  예: !팀조회 블루\n" +
          "!팀삭제 [팀명] - 팀 삭제\n" +
          "  예: !팀삭제 블루\n" +
-         "!팀배정 [이름] [팀] - 멤버를 팀에 배정\n" +
-         "  예: !팀배정 홍길동 블루\n" +
-         "!팀배정해제 [이름] - 팀 배정 해제\n" +
+         "!팀배정 [팀] [이름] [ID(선택)] - 멤버를 팀에 배정\n" +
+         "  예: !팀배정 블루 홍길동\n" +
+         "  동명이인: !팀배정 블루 홍길동 MEM_XXXXXXXX\n" +
+         "!팀배정해제 [이름] [ID(선택)] - 팀 배정 해제\n" +
          "  예: !팀배정해제 홍길동\n" +
+         "  동명이인: !팀배정해제 홍길동 MEM_XXXXXXXX\n" +
          "!팀확인 [이름] - 팀 확인 (생략 시 본인)\n" +
          "  예: !팀확인 / !팀확인 홍길동\n\n" +
          "[기타]\n" +
