@@ -606,12 +606,17 @@ function formatGameListResponse(data) {
   var games = data.games || [];
   var totalItems = data.pagination ? data.pagination.total_items : games.length;
   var roomName = games.length > 0 && games[0].room ? games[0].room : "전체";
+  var roomUrl = games.length > 0 && games[0].room_url ? games[0].room_url : null;
 
   if (totalItems === 0) {
     return "생성된 경기가 없습니다.\n!경기생성 명령어로 새 경기를 만들어주세요.";
   }
 
-  var result = "=== " + roomName + " 경기 목록 ===\n\n";
+  var result = "=== " + roomName + " 경기 목록 ===\n";
+  if (roomUrl) {
+    result += "방 URL: " + roomUrl + "\n";
+  }
+  result += "\n";
 
   for (var i = 0; i < games.length; i++) {
     var game = games[i];
@@ -639,7 +644,7 @@ function formatGameListResponse(data) {
     if (game.creator) {
       result += "   생성: " + game.creator + "\n";
     }
-    result += "   URL: " + game.url + "\n";
+    result += "   경기 URL: " + game.url + "\n";
 
     if (i < games.length - 1) {
       result += "\n";
