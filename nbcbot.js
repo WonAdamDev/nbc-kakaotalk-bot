@@ -724,8 +724,6 @@ function formatGameListResponse(data) {
  */
 function getHelpMessage() {
   return "=== NBC 봇 사용 가능한 명령어 ===\n\n" +
-         "[서버 관리]\n" +
-         "!health - 서버 상태 확인\n\n" +
          "[경기 관리]\n" +
          "!경기생성 [날짜] - 경기 생성 (날짜 생략 시 오늘)\n" +
          "  예: !경기생성\n" +
@@ -756,7 +754,6 @@ function getHelpMessage() {
          "!팀확인 [이름] - 팀 확인 (생략 시 본인)\n" +
          "  예: !팀확인 / !팀확인 홍길동\n\n" +
          "[기타]\n" +
-         "!echo [메시지] - 메시지 에코\n" +
          "!도움말 - 이 메시지 표시";
 }
 
