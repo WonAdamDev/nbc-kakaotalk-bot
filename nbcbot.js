@@ -136,7 +136,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           paramMap.member_id = params[1];
         }
         response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.GET);
-        Log.d("[팀확인] 서버 응답: " + JSON.stringify(response));
         response = formatMemberTeamGetResponse(response);
         break;
 
@@ -380,10 +379,6 @@ function formatTeamGetResponse(data) {
 
 // 팀 확인 응답 포맷팅
 function formatMemberTeamGetResponse(data) {
-  Log.d("[formatMemberTeamGetResponse] 입력 데이터 타입: " + (typeof data));
-  Log.d("[formatMemberTeamGetResponse] is_unique: " + data.is_unique);
-  Log.d("[formatMemberTeamGetResponse] duplicates: " + (data.duplicates ? data.duplicates.length : "없음"));
-
   if (typeof data !== 'object') return data;
 
   if (data.is_member === false) {
@@ -392,19 +387,16 @@ function formatMemberTeamGetResponse(data) {
 
   // 동명이인 체크
   if (data.is_unique === false && data.duplicates) {
-    Log.d("[formatMemberTeamGetResponse] 동명이인 처리 시작");
     var result = data.member + "님은 동명이인이 " + data.count + "명 있습니다.\n";
     result += "member_id를 함께 입력해주세요.\n\n";
     for (var i = 0; i < data.duplicates.length; i++) {
       var dup = data.duplicates[i];
       result += "ID: " + dup.member_id + " (팀: " + (dup.team || "없음") + ")\n";
     }
-    Log.d("[formatMemberTeamGetResponse] 동명이인 결과: " + result);
     return result;
   }
 
   // 단일 멤버
-  Log.d("[formatMemberTeamGetResponse] 단일 멤버 처리");
   if (data.team) {
     var result = data.member + "님은 " + data.team + "팀에 배정되어 있습니다.";
     if (data.member_id) {
