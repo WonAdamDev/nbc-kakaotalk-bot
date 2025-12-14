@@ -430,96 +430,6 @@ function formatMemberTeamGetResponse(data) {
 }
 
 
-// 팀 목록 응답 포맷팅
-function formatTeamListResponse(data) {
-  Log.d("[formatTeamListResponse] 데이터 타입: " + (typeof data));
-  Log.d("[formatTeamListResponse] data.teams 존재: " + (data && data.teams ? "yes" : "no"));
-  Log.d("[formatTeamListResponse] data.teams 길이: " + (data && data.teams ? data.teams.length : "N/A"));
-
-  if (typeof data !== 'object') {
-    Log.d("[formatTeamListResponse] 객체가 아님, 그대로 반환");
-    return data;
-  }
-
-  if (!data.teams || data.teams.length === 0) {
-    Log.d("[formatTeamListResponse] 팀이 없음");
-    return "이 방에는 등록된 팀이 없습니다.";
-  }
-
-  var result = "=== 팀 목록 (" + data.count + "개) ===\n\n";
-  for (var i = 0; i < data.teams.length; i++) {
-    var team = data.teams[i];
-    result += (i + 1) + ". " + team.name + " (" + team.member_count + "명)\n";
-  }
-
-  Log.d("[formatTeamListResponse] 결과: " + result);
-  return result;
-}
-
-
-// 멤버 목록 응답 포맷팅
-function formatMemberListResponse(data) {
-  Log.d("[formatMemberListResponse] 데이터 타입: " + (typeof data));
-  Log.d("[formatMemberListResponse] data.members 존재: " + (data && data.members ? "yes" : "no"));
-  Log.d("[formatMemberListResponse] data.members 길이: " + (data && data.members ? data.members.length : "N/A"));
-
-  if (typeof data !== 'object') {
-    Log.d("[formatMemberListResponse] 객체가 아님, 그대로 반환");
-    return data;
-  }
-
-  if (!data.members || data.members.length === 0) {
-    Log.d("[formatMemberListResponse] 멤버가 없음");
-    return "이 방에는 등록된 멤버가 없습니다.";
-  }
-
-  // 팀별로 멤버 그룹화
-  var teamGroups = {};
-  var noTeamMembers = [];
-
-  for (var i = 0; i < data.members.length; i++) {
-    var member = data.members[i];
-    if (member.team) {
-      if (!teamGroups[member.team]) {
-        teamGroups[member.team] = [];
-      }
-      teamGroups[member.team].push(member);
-    } else {
-      noTeamMembers.push(member);
-    }
-  }
-
-  var result = "=== 멤버 목록 (" + data.count + "명) ===\n\n";
-
-  // 팀별로 출력
-  var teamNames = Object.keys(teamGroups).sort();
-  for (var i = 0; i < teamNames.length; i++) {
-    var teamName = teamNames[i];
-    var members = teamGroups[teamName];
-    result += "[" + teamName + "팀] " + members.length + "명\n";
-    for (var j = 0; j < members.length; j++) {
-      var m = members[j];
-      // 동명이인 체크를 위해 ID 마지막 4자리 표시
-      var idSuffix = m.member_id ? " #" + m.member_id.substring(m.member_id.length - 4) : "";
-      result += "  - " + m.name + idSuffix + "\n";
-    }
-    result += "\n";
-  }
-
-  // 팀 미배정 멤버
-  if (noTeamMembers.length > 0) {
-    result += "[팀 미배정] " + noTeamMembers.length + "명\n";
-    for (var i = 0; i < noTeamMembers.length; i++) {
-      var m = noTeamMembers[i];
-      var idSuffix = m.member_id ? " #" + m.member_id.substring(m.member_id.length - 4) : "";
-      result += "  - " + m.name + idSuffix + "\n";
-    }
-  }
-
-  return result;
-}
-
-
 // 숫자를 2자리로 패딩하는 헬퍼 함수 (padStart 대체)
 function padZero(num) {
   return num < 10 ? '0' + num : String(num);
@@ -632,12 +542,15 @@ function formatGameListResponse(data) {
 
 // 멤버 목록 응답 포맷팅
 function formatMemberListResponse(data) {
+  Log.d("[formatMemberListResponse] 입력 데이터: " + JSON.stringify(data));
+
   if (typeof data !== 'object') return data;
 
-  var responseData = data.data || {};
-  var members = responseData.members || [];
-  var count = responseData.count || 0;
-  var roomName = responseData.room || "이 방";
+  var members = data.members || [];
+  var count = data.count || 0;
+  var roomName = data.room || "이 방";
+
+  Log.d("[formatMemberListResponse] members 길이: " + members.length + ", count: " + count);
 
   if (count === 0) {
     return "등록된 멤버가 없습니다.";
@@ -667,77 +580,15 @@ function formatMemberListResponse(data) {
 
 // 팀 목록 응답 포맷팅
 function formatTeamListResponse(data) {
+  Log.d("[formatTeamListResponse] 입력 데이터: " + JSON.stringify(data));
+
   if (typeof data !== 'object') return data;
 
-  var responseData = data.data || {};
-  var teams = responseData.teams || [];
-  var count = responseData.count || 0;
-  var roomName = responseData.room || "이 방";
+  var teams = data.teams || [];
+  var count = data.count || 0;
+  var roomName = data.room || "이 방";
 
-  if (count === 0) {
-    return "생성된 팀이 없습니다.";
-  }
-
-  var result = "=== " + roomName + " 팀 목록 ===\n\n";
-
-  for (var i = 0; i < teams.length; i++) {
-    var team = teams[i];
-    result += (i + 1) + ". " + team.name + "팀";
-    result += " (멤버 " + team.member_count + "명)\n";
-    result += "   ID: " + team.team_id + "\n";
-    if (i < teams.length - 1) {
-      result += "\n";
-    }
-  }
-
-  result += "\n총 " + count + "개 팀";
-
-  return result;
-}
-
-// 멤버 목록 응답 포맷팅
-function formatMemberListResponse(data) {
-  if (typeof data !== 'object') return data;
-
-  var responseData = data.data || {};
-  var members = responseData.members || [];
-  var count = responseData.count || 0;
-  var roomName = responseData.room || "이 방";
-
-  if (count === 0) {
-    return "등록된 멤버가 없습니다.";
-  }
-
-  var result = "=== " + roomName + " 멤버 목록 ===\n\n";
-
-  for (var i = 0; i < members.length; i++) {
-    var member = members[i];
-    result += (i + 1) + ". " + member.name;
-    if (member.team) {
-      result += " (" + member.team + "팀)";
-    } else {
-      result += " (팀 미배정)";
-    }
-    result += "\n";
-    result += "   ID: " + member.member_id + "\n";
-    if (i < members.length - 1) {
-      result += "\n";
-    }
-  }
-
-  result += "\n총 " + count + "명";
-
-  return result;
-}
-
-// 팀 목록 응답 포맷팅
-function formatTeamListResponse(data) {
-  if (typeof data !== 'object') return data;
-
-  var responseData = data.data || {};
-  var teams = responseData.teams || [];
-  var count = responseData.count || 0;
-  var roomName = responseData.room || "이 방";
+  Log.d("[formatTeamListResponse] teams 길이: " + teams.length + ", count: " + count);
 
   if (count === 0) {
     return "생성된 팀이 없습니다.";
