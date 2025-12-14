@@ -96,7 +96,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       case "에코":
         // echo 명령어는 메시지만 포함
         if (params.length === 0) {
-          response = `에코할 메시지를 입력하세요. 예: !${command} 안녕하세요`;
+          response = "에코할 메시지를 입력하세요. 예: !" + command + " 안녕하세요";
           break;
         }
         paramMap = {
@@ -108,13 +108,10 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       case "멤버조회":
       case "멤버확인":
       case "멤버":
-        if(params.length <= 0) {
-          response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)`;
-          break;
-        }
+        // 파라미터가 없으면 본인 조회
         paramMap = {
           room: room,
-          member: params[0]
+          member: params.length > 0 ? params[0] : sender
         };
         // params[1]이 있으면 member_id로 전달
         if (params.length >= 2) {
@@ -142,7 +139,7 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
       case "팀조회":
       case "팀정보":
         if(params.length <= 0) {
-          response = `파라미터가 부족합니다. (예시 : !${command} 블루)`;
+          response = "파라미터가 부족합니다. (예시 : !" + command + " 블루)";
           break;
         }
         paramMap = {
@@ -662,8 +659,8 @@ function getHelpMessage() {
          "!경기목록 - 이 방의 경기 목록 조회\n" +
          "  ※ 최근 7일 이내 경기만 표시\n\n" +
          "[멤버 조회]\n" +
-         "!멤버조회 [이름] [ID] - 멤버 정보 조회\n" +
-         "  예: !멤버조회 홍길동\n" +
+         "!멤버조회 [이름] [ID] - 멤버 정보 조회 (생략 시 본인)\n" +
+         "  예: !멤버조회 / !멤버조회 홍길동\n" +
          "  예: !멤버조회 홍길동 MEM_12345678 (동명이인 구분)\n\n" +
          "[팀 조회]\n" +
          "!팀조회 [팀명] - 팀 정보 조회\n" +
