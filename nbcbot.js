@@ -377,10 +377,30 @@ function formatMemberTeamGetResponse(data) {
     return data.member + "님은 멤버가 아닙니다.";
   }
 
+  // 동명이인 체크
+  if (data.is_unique === false && data.duplicates) {
+    var result = data.member + "님은 동명이인이 " + data.count + "명 있습니다.\n";
+    result += "member_id를 함께 입력해주세요.\n\n";
+    for (var i = 0; i < data.duplicates.length; i++) {
+      var dup = data.duplicates[i];
+      result += "ID: " + dup.member_id + " (팀: " + (dup.team || "없음") + ")\n";
+    }
+    return result;
+  }
+
+  // 단일 멤버
   if (data.team) {
-    return data.member + "님은 " + data.team + "팀에 배정되어 있습니다.";
+    var result = data.member + "님은 " + data.team + "팀에 배정되어 있습니다.";
+    if (data.member_id) {
+      result += "\nID: " + data.member_id;
+    }
+    return result;
   } else {
-    return data.member + "님은 팀에 배정되어 있지 않습니다.";
+    var result = data.member + "님은 팀에 배정되어 있지 않습니다.";
+    if (data.member_id) {
+      result += "\nID: " + data.member_id;
+    }
+    return result;
   }
 }
 
