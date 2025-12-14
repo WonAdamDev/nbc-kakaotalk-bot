@@ -155,6 +155,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           room: room
         };
         response = sendRequest("/api/commands/team/list", paramMap, HttpMethod.GET);
+        Log.d("[팀목록] 서버 응답: " + JSON.stringify(response));
+        Log.d("[팀목록] 응답 타입: " + (typeof response));
         response = formatTeamListResponse(response);
         break;
 
@@ -163,6 +165,8 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           room: room
         };
         response = sendRequest("/api/commands/member/list", paramMap, HttpMethod.GET);
+        Log.d("[멤버목록] 서버 응답: " + JSON.stringify(response));
+        Log.d("[멤버목록] 응답 타입: " + (typeof response));
         response = formatMemberListResponse(response);
         break;
 
