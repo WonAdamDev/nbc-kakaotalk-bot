@@ -364,26 +364,6 @@ function formatTeamGetResponse(data) {
     return m.name;
   }).join(", ");
 
-  // 동명이인 확인을 위해 이름별로 카운트
-  const nameCount = {};
-  for (let i = 0; i < data.members.length; i++) {
-    const memberName = typeof data.members[i] === 'object' ? data.members[i].name : data.members[i];
-    nameCount[memberName] = (nameCount[memberName] || 0) + 1;
-  }
-
-  // 멤버 리스트 포맷팅
-  const memberList = data.members.map(function(m) {
-    // 하위 호환성: 문자열인 경우 그대로 반환
-    if (typeof m === 'string') return m;
-
-    // 동명이인이 있고 member_id가 있으면 ID 마지막 4자리 표시
-    const hasDuplicate = nameCount[m.name] > 1;
-    if (hasDuplicate && m.member_id) {
-      return m.name + " #" + m.member_id.substring(m.member_id.length - 4);
-    }
-    return m.name;
-  }).join(", ");
-
   return data.team + "팀 정보\n멤버 수: " + data.member_count + "명\n멤버: " + memberList;
 }
 
