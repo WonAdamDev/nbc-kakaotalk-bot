@@ -150,6 +150,22 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         response = formatTeamGetResponse(response);
         break;
 
+      case "팀목록":
+        paramMap = {
+          room: room
+        };
+        response = sendRequest("/api/commands/team/list", paramMap, HttpMethod.GET);
+        response = formatTeamListResponse(response);
+        break;
+
+      case "멤버목록":
+        paramMap = {
+          room: room
+        };
+        response = sendRequest("/api/commands/member/list", paramMap, HttpMethod.GET);
+        response = formatMemberListResponse(response);
+        break;
+
       case "경기목록":
       case "경기조회":
       case "게임목록":
@@ -410,6 +426,79 @@ function formatMemberTeamGetResponse(data) {
 }
 
 
+// 팀 목록 응답 포맷팅
+function formatTeamListResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (!data.teams || data.teams.length === 0) {
+    return "이 방에는 등록된 팀이 없습니다.";
+  }
+
+  var result = "=== 팀 목록 (" + data.count + "개) ===\n\n";
+  for (var i = 0; i < data.teams.length; i++) {
+    var team = data.teams[i];
+    result += (i + 1) + ". " + team.name + " (" + team.member_count + "명)\n";
+  }
+
+  return result;
+}
+
+
+// 멤버 목록 응답 포맷팅
+function formatMemberListResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  if (!data.members || data.members.length === 0) {
+    return "이 방에는 등록된 멤버가 없습니다.";
+  }
+
+  // 팀별로 멤버 그룹화
+  var teamGroups = {};
+  var noTeamMembers = [];
+
+  for (var i = 0; i < data.members.length; i++) {
+    var member = data.members[i];
+    if (member.team) {
+      if (!teamGroups[member.team]) {
+        teamGroups[member.team] = [];
+      }
+      teamGroups[member.team].push(member);
+    } else {
+      noTeamMembers.push(member);
+    }
+  }
+
+  var result = "=== 멤버 목록 (" + data.count + "명) ===\n\n";
+
+  // 팀별로 출력
+  var teamNames = Object.keys(teamGroups).sort();
+  for (var i = 0; i < teamNames.length; i++) {
+    var teamName = teamNames[i];
+    var members = teamGroups[teamName];
+    result += "[" + teamName + "팀] " + members.length + "명\n";
+    for (var j = 0; j < members.length; j++) {
+      var m = members[j];
+      // 동명이인 체크를 위해 ID 마지막 4자리 표시
+      var idSuffix = m.member_id ? " #" + m.member_id.substring(m.member_id.length - 4) : "";
+      result += "  - " + m.name + idSuffix + "\n";
+    }
+    result += "\n";
+  }
+
+  // 팀 미배정 멤버
+  if (noTeamMembers.length > 0) {
+    result += "[팀 미배정] " + noTeamMembers.length + "명\n";
+    for (var i = 0; i < noTeamMembers.length; i++) {
+      var m = noTeamMembers[i];
+      var idSuffix = m.member_id ? " #" + m.member_id.substring(m.member_id.length - 4) : "";
+      result += "  - " + m.name + idSuffix + "\n";
+    }
+  }
+
+  return result;
+}
+
+
 // 숫자를 2자리로 패딩하는 헬퍼 함수 (padStart 대체)
 function padZero(num) {
   return num < 10 ? '0' + num : String(num);
@@ -658,11 +747,13 @@ function getHelpMessage() {
          "[경기 조회]\n" +
          "!경기목록 - 이 방의 경기 목록 조회\n" +
          "  ※ 최근 7일 이내 경기만 표시\n\n" +
-         "[멤버 조회]\n" +
+         "[멤버 관리]\n" +
+         "!멤버목록 - 이 방의 모든 멤버 조회\n" +
          "!멤버조회 [이름] [ID] - 멤버 정보 조회 (생략 시 본인)\n" +
          "  예: !멤버조회 / !멤버조회 홍길동\n" +
          "  예: !멤버조회 홍길동 MEM_12345678 (동명이인 구분)\n\n" +
-         "[팀 조회]\n" +
+         "[팀 관리]\n" +
+         "!팀목록 - 이 방의 모든 팀 조회\n" +
          "!팀조회 [팀명] - 팀 정보 조회\n" +
          "  예: !팀조회 블루\n" +
          "!팀확인 [이름] [ID] - 팀 확인 (생략 시 본인)\n" +
