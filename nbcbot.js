@@ -309,8 +309,26 @@ function formatMemberGetResponse(data) {
     return data.member + "님은 멤버가 아닙니다.";
   }
 
-  const teamText = data.team || "undefined";
-  return data.member + "님 정보\n팀: " + teamText;
+  // 동명이인 체크
+  if (data.is_unique === false && data.duplicates) {
+    var result = data.member + "님은 동명이인이 " + data.count + "명 있습니다.\n";
+    result += "member_id를 함께 입력해주세요.\n\n";
+    for (var i = 0; i < data.duplicates.length; i++) {
+      var dup = data.duplicates[i];
+      result += "ID: " + dup.member_id + " (팀: " + (dup.team || "없음") + ")\n";
+    }
+    return result;
+  }
+
+  const teamText = data.team || "없음";
+  let result = data.member + "님 정보\n팀: " + teamText;
+
+  // member_id 전체 표시
+  if (data.member_id) {
+    result += "\nID: " + data.member_id;
+  }
+
+  return result;
 }
 
 
@@ -326,7 +344,26 @@ function formatTeamGetResponse(data) {
     return data.team + "팀 정보\n멤버 수: 0명";
   }
 
-  const memberList = data.members.join(", ");
+  // 동명이인 확인을 위해 이름별로 카운트
+  const nameCount = {};
+  for (let i = 0; i < data.members.length; i++) {
+    const memberName = typeof data.members[i] === 'object' ? data.members[i].name : data.members[i];
+    nameCount[memberName] = (nameCount[memberName] || 0) + 1;
+  }
+
+  // 멤버 리스트 포맷팅
+  const memberList = data.members.map(function(m) {
+    // 하위 호환성: 문자열인 경우 그대로 반환
+    if (typeof m === 'string') return m;
+
+    // 동명이인이 있고 member_id가 있으면 ID 마지막 4자리 표시
+    const hasDuplicate = nameCount[m.name] > 1;
+    if (hasDuplicate && m.member_id) {
+      return m.name + " #" + m.member_id.substring(m.member_id.length - 4);
+    }
+    return m.name;
+  }).join(", ");
+
   return data.team + "팀 정보\n멤버 수: " + data.member_count + "명\n멤버: " + memberList;
 }
 
@@ -353,24 +390,24 @@ function padZero(num) {
   return num < 10 ? '0' + num : String(num);
 }
 
-// ISO 날짜 문자열을 파싱하는 헬퍼 함수
+// ISO 날짜 문자열을 파싱하는 헬퍼 함수 (UTC -> KST 변환)
 function parseISODateTime(isoString) {
   try {
-    // ISO 8601: 2024-12-07T15:30:00
-    var parts = isoString.split('T');
-    var datePart = parts[0]; // 2024-12-07
-    var timePart = parts[1]; // 15:30:00 또는 15:30:00.123Z
+    // ISO 8601: 2024-12-07T15:30:00Z (UTC 시간)
+    var date = new Date(isoString);
 
-    if (timePart) {
-      // Z나 밀리초 제거
-      timePart = timePart.split('.')[0].split('Z')[0];
-      var timeParts = timePart.split(':');
-      return {
-        hours: parseInt(timeParts[0]),
-        minutes: parseInt(timeParts[1])
-      };
-    }
-    return null;
+    // KST는 UTC+9
+    var kstOffset = 9 * 60; // 9시간을 분으로 변환
+    var utcMinutes = date.getUTCHours() * 60 + date.getUTCMinutes();
+    var kstMinutes = utcMinutes + kstOffset;
+
+    var hours = Math.floor(kstMinutes / 60) % 24;
+    var minutes = kstMinutes % 60;
+
+    return {
+      hours: hours,
+      minutes: minutes
+    };
   } catch (e) {
     return null;
   }
@@ -384,12 +421,17 @@ function formatGameListResponse(data) {
   var games = data.games || [];
   var totalItems = data.pagination ? data.pagination.total_items : games.length;
   var roomName = games.length > 0 && games[0].room ? games[0].room : "전체";
+  var roomUrl = games.length > 0 && games[0].room_url ? games[0].room_url : null;
 
   if (totalItems === 0) {
     return "생성된 경기가 없습니다.\nAdmin 페이지에서 새 경기를 만들어주세요.";
   }
 
-  var result = "=== " + roomName + " 경기 목록 ===\n\n";
+  var result = "=== " + roomName + " 경기 목록 ===\n";
+  if (roomUrl) {
+    result += "방 URL: " + roomUrl + "\n";
+  }
+  result += "\n";
 
   for (var i = 0; i < games.length; i++) {
     var game = games[i];
@@ -417,7 +459,7 @@ function formatGameListResponse(data) {
     if (game.creator) {
       result += "   생성: " + game.creator + "\n";
     }
-    result += "   URL: " + game.url + "\n";
+    result += "   경기 URL: " + game.url + "\n";
 
     if (i < games.length - 1) {
       result += "\n";
@@ -426,6 +468,71 @@ function formatGameListResponse(data) {
 
   result += "\n총 " + totalItems + "개 경기";
   result += "\n\n※ 최근 7일 이내 경기만 표시됩니다.";
+
+  return result;
+}
+
+// 멤버 목록 응답 포맷팅
+function formatMemberListResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  var responseData = data.data || {};
+  var members = responseData.members || [];
+  var count = responseData.count || 0;
+  var roomName = responseData.room || "이 방";
+
+  if (count === 0) {
+    return "등록된 멤버가 없습니다.\n!멤버생성 명령어로 멤버를 추가해주세요.";
+  }
+
+  var result = "=== " + roomName + " 멤버 목록 ===\n\n";
+
+  for (var i = 0; i < members.length; i++) {
+    var member = members[i];
+    result += (i + 1) + ". " + member.name;
+    if (member.team) {
+      result += " (" + member.team + "팀)";
+    } else {
+      result += " (팀 미배정)";
+    }
+    result += "\n";
+    result += "   ID: " + member.member_id + "\n";
+    if (i < members.length - 1) {
+      result += "\n";
+    }
+  }
+
+  result += "\n총 " + count + "명";
+
+  return result;
+}
+
+// 팀 목록 응답 포맷팅
+function formatTeamListResponse(data) {
+  if (typeof data !== 'object') return data;
+
+  var responseData = data.data || {};
+  var teams = responseData.teams || [];
+  var count = responseData.count || 0;
+  var roomName = responseData.room || "이 방";
+
+  if (count === 0) {
+    return "생성된 팀이 없습니다.\n!팀생성 명령어로 팀을 추가해주세요.";
+  }
+
+  var result = "=== " + roomName + " 팀 목록 ===\n\n";
+
+  for (var i = 0; i < teams.length; i++) {
+    var team = teams[i];
+    result += (i + 1) + ". " + team.name + "팀";
+    result += " (멤버 " + team.member_count + "명)\n";
+    result += "   ID: " + team.team_id + "\n";
+    if (i < teams.length - 1) {
+      result += "\n";
+    }
+  }
+
+  result += "\n총 " + count + "개 팀";
 
   return result;
 }
@@ -451,7 +558,6 @@ function getHelpMessage() {
          "[관리자 기능]\n" +
          "※ 멤버/팀/경기 생성 및 삭제는 Admin 페이지에서 가능합니다.\n\n" +
          "[기타]\n" +
-         "!echo [메시지] - 메시지 에코\n" +
          "!도움말 - 이 메시지 표시";
 }
 
