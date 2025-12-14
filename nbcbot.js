@@ -105,22 +105,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         response = sendRequest("/api/commands/echo/", paramMap, HttpMethod.POST);
         break;
 
-      case "멤버생성":
-      case "멤버추가":
-        if(params.length <= 0) {
-          response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)`;
-          break;
-        }
-        paramMap = {
-          sender: sender,
-          room: room,
-          member: params[0]
-        };
-
-        response = sendRequest("/api/commands/member/", paramMap, HttpMethod.POST);
-        response = formatMemberPostResponse(response);
-        break;
-
       case "멤버조회":
       case "멤버확인":
       case "멤버":
@@ -137,59 +121,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         response = formatMemberGetResponse(response);
         break;
 
-      case "멤버제거":
-      case "멤버삭제":
-        if(params.length <= 0) {
-          response = `파라미터가 부족합니다. (예시 : !${command} 홍길동)`;
-          break;
-        }
-        paramMap = {
-          sender: sender,
-          room: room,
-          member: params[0]
-        };
-        response = sendRequest("/api/commands/member/", paramMap, HttpMethod.DELETE);
-        response = formatMemberDeleteResponse(response);
-        break;
-
-      case "팀배정":
-        if(params.length <= 0) {
-          response = "파라미터가 부족합니다. (예시 : !팀배정 홍길동 블루)";
-          break;
-        }
-
-        if(params.length < 2) {
-          response = "팀 이름을 입력해주세요. (예시 : !팀배정 홍길동 블루)";
-          break;
-        }
-
-        paramMap = {
-          sender: sender,
-          room: room,
-          member: params[0],
-          team: params[1],
-        };
-
-        response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.POST);
-        response = formatMemberTeamPostResponse(response);
-        break;
-
-      case "팀배정해제":
-        if(params.length <= 0) {
-          response = "파라미터가 부족합니다. (예시 : !팀배정해제 홍길동)";
-          break;
-        }
-
-        paramMap = {
-          sender: sender,
-          room: room,
-          member: params[0],
-        };
-
-        response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.DELETE);
-        response = formatMemberTeamDeleteResponse(response);
-        break;
-
       case "팀확인":
         paramMap = {
           sender: sender,
@@ -198,36 +129,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         };
         response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.GET);
         response = formatMemberTeamGetResponse(response);
-        break;
-
-      case "팀생성":
-      case "팀추가":
-        if(params.length <= 0) {
-          response = `파라미터가 부족합니다. (예시 : !${command} 블루)`;
-          break;
-        }
-        paramMap = {
-          sender: sender,
-          room: room,
-          team: params[0]
-        };
-        response = sendRequest("/api/commands/team/", paramMap, HttpMethod.POST);
-        response = formatTeamPostResponse(response);
-        break;
-
-      case "팀삭제":
-      case "팀제거":
-        if(params.length <= 0) {
-          response = `파라미터가 부족합니다. (예시 : !${command} 블루)`;
-          break;
-        }
-        paramMap = {
-          sender: sender,
-          room: room,
-          team: params[0]
-        };
-        response = sendRequest("/api/commands/team/", paramMap, HttpMethod.DELETE);
-        response = formatTeamDeleteResponse(response);
         break;
 
       case "팀조회":
@@ -242,21 +143,6 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         };
         response = sendRequest("/api/commands/team/", paramMap, HttpMethod.GET);
         response = formatTeamGetResponse(response);
-        break;
-
-      case "경기생성":
-      case "게임생성":
-        // 날짜 파라미터 optional (기본값: 오늘)
-        const gameDate = params.length > 0 ? params[0] : null;
-        paramMap = {
-          room: room,
-          creator: sender
-        };
-        if (gameDate) {
-          paramMap.date = gameDate;
-        }
-        response = sendRequest("/api/game/create", paramMap, HttpMethod.POST);
-        response = formatGameCreateResponse(response);
         break;
 
       case "경기목록":
@@ -427,17 +313,6 @@ function formatMemberGetResponse(data) {
   return data.member + "님 정보\n팀: " + teamText;
 }
 
-// 멤버 생성 응답 포맷팅
-function formatMemberPostResponse(data) {
-  if (typeof data !== 'object') return data;
-  return data.member + "님이 멤버가 되었습니다.";
-}
-
-// 멤버 삭제 응답 포맷팅
-function formatMemberDeleteResponse(data) {
-  if (typeof data !== 'object') return data;
-  return data.member + "님이 멤버에서 제거되었습니다.";
-}
 
 // 팀 조회 응답 포맷팅
 function formatTeamGetResponse(data) {
@@ -455,63 +330,7 @@ function formatTeamGetResponse(data) {
   return data.team + "팀 정보\n멤버 수: " + data.member_count + "명\n멤버: " + memberList;
 }
 
-// 팀 생성 응답 포맷팅
-function formatTeamPostResponse(data) {
-  if (typeof data !== 'object') return data;
 
-  if (data.created === true) {
-    return data.team + "팀이 생성되었습니다.";
-  } else if (data.reason === 'already_exists') {
-    return data.team + "팀이 이미 존재합니다.";
-  }
-
-  return String(data);
-}
-
-// 팀 삭제 응답 포맷팅
-function formatTeamDeleteResponse(data) {
-  if (typeof data !== 'object') return data;
-
-  if (data.deleted === true) {
-    return data.team + "팀이 삭제되었습니다.";
-  } else if (data.reason === 'not_found') {
-    return data.team + "팀은 존재하지 않습니다.";
-  } else if (data.reason === 'has_members') {
-    return data.team + "팀에 " + data.member_count + "명의 멤버가 있어 삭제할 수 없습니다.";
-  }
-
-  return String(data);
-}
-
-// 팀 배정 응답 포맷팅
-function formatMemberTeamPostResponse(data) {
-  if (typeof data !== 'object') return data;
-
-  if (data.assigned === true) {
-    return data.member + "님이 " + data.team + "팀에 배정되었습니다.";
-  } else if (data.reason === 'member_not_found') {
-    return data.member + "님은 멤버가 아닙니다.";
-  } else if (data.reason === 'team_not_found') {
-    return data.team + "팀은 존재하지 않습니다.";
-  }
-
-  return String(data);
-}
-
-// 팀 배정 해제 응답 포맷팅
-function formatMemberTeamDeleteResponse(data) {
-  if (typeof data !== 'object') return data;
-
-  if (data.unassigned === true) {
-    return data.member + "님의 팀 배정(" + data.previous_team + ")이 해제되었습니다.";
-  } else if (data.reason === 'member_not_found') {
-    return data.member + "님은 멤버가 아닙니다.";
-  } else if (data.reason === 'no_team_assigned') {
-    return data.member + "님은 팀에 배정되어 있지 않습니다.";
-  }
-
-  return String(data);
-}
 
 // 팀 확인 응답 포맷팅
 function formatMemberTeamGetResponse(data) {
@@ -528,21 +347,6 @@ function formatMemberTeamGetResponse(data) {
   }
 }
 
-// 경기 생성 응답 포맷팅
-function formatGameCreateResponse(data) {
-  if (typeof data !== 'object') return data;
-
-  if (!data.game_id || !data.url) {
-    return "경기 생성에 실패했습니다.";
-  }
-
-  return "=== 경기가 생성되었습니다 ===\n\n" +
-         "경기 ID: " + data.game_id + "\n" +
-         "생성자: " + data.game.creator + "\n" +
-         "날짜: " + data.game.date + "\n\n" +
-         "경기 관리 페이지:\n" + data.url + "\n\n" +
-         "※ 위 링크에서 선수 도착, 쿼터 관리, 점수 기록 등 모든 경기 관리가 가능합니다.";
-}
 
 // 숫자를 2자리로 패딩하는 헬퍼 함수 (padStart 대체)
 function padZero(num) {
@@ -582,7 +386,7 @@ function formatGameListResponse(data) {
   var roomName = games.length > 0 && games[0].room ? games[0].room : "전체";
 
   if (totalItems === 0) {
-    return "생성된 경기가 없습니다.\n!경기생성 명령어로 새 경기를 만들어주세요.";
+    return "생성된 경기가 없습니다.\nAdmin 페이지에서 새 경기를 만들어주세요.";
   }
 
   var result = "=== " + roomName + " 경기 목록 ===\n\n";
@@ -633,32 +437,19 @@ function getHelpMessage() {
   return "=== NBC 봇 사용 가능한 명령어 ===\n\n" +
          "[서버 관리]\n" +
          "!health - 서버 상태 확인\n\n" +
-         "[경기 관리]\n" +
-         "!경기생성 [날짜] - 경기 생성 (날짜 생략 시 오늘)\n" +
-         "  예: !경기생성\n" +
-         "  예: !경기생성 2024-01-25\n" +
+         "[경기 조회]\n" +
          "!경기목록 - 이 방의 경기 목록 조회\n" +
          "  ※ 최근 7일 이내 경기만 표시\n\n" +
-         "[멤버 관리]\n" +
-         "!멤버생성 [이름] - 멤버 생성\n" +
-         "  예: !멤버생성 홍길동\n" +
+         "[멤버 조회]\n" +
          "!멤버조회 [이름] - 멤버 정보 조회\n" +
-         "  예: !멤버조회 홍길동\n" +
-         "!멤버삭제 [이름] - 멤버 제거\n" +
-         "  예: !멤버삭제 홍길동\n\n" +
-         "[팀 관리]\n" +
-         "!팀생성 [팀명] - 팀 생성\n" +
-         "  예: !팀생성 블루\n" +
+         "  예: !멤버조회 홍길동\n\n" +
+         "[팀 조회]\n" +
          "!팀조회 [팀명] - 팀 정보 조회\n" +
          "  예: !팀조회 블루\n" +
-         "!팀삭제 [팀명] - 팀 삭제\n" +
-         "  예: !팀삭제 블루\n" +
-         "!팀배정 [이름] [팀] - 멤버를 팀에 배정\n" +
-         "  예: !팀배정 홍길동 블루\n" +
-         "!팀배정해제 [이름] - 팀 배정 해제\n" +
-         "  예: !팀배정해제 홍길동\n" +
          "!팀확인 [이름] - 팀 확인 (생략 시 본인)\n" +
          "  예: !팀확인 / !팀확인 홍길동\n\n" +
+         "[관리자 기능]\n" +
+         "※ 멤버/팀/경기 생성 및 삭제는 Admin 페이지에서 가능합니다.\n\n" +
          "[기타]\n" +
          "!echo [메시지] - 메시지 에코\n" +
          "!도움말 - 이 메시지 표시";
