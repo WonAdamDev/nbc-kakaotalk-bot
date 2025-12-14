@@ -116,6 +116,10 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           room: room,
           member: params[0]
         };
+        // params[1]이 있으면 member_id로 전달
+        if (params.length >= 2) {
+          paramMap.member_id = params[1];
+        }
 
         response = sendRequest("/api/commands/member/", paramMap, HttpMethod.GET);
         response = formatMemberGetResponse(response);
@@ -127,6 +131,10 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
           room: room,
           member: params.length == 0 ? sender : params[0]
         };
+        // params[1]이 있으면 member_id로 전달
+        if (params.length >= 2) {
+          paramMap.member_id = params[1];
+        }
         response = sendRequest("/api/commands/member_team/", paramMap, HttpMethod.GET);
         Log.d("[팀확인] 서버 응답: " + JSON.stringify(response));
         response = formatMemberTeamGetResponse(response);
@@ -658,21 +666,19 @@ function formatTeamListResponse(data) {
  */
 function getHelpMessage() {
   return "=== NBC 봇 사용 가능한 명령어 ===\n\n" +
-         "[서버 관리]\n" +
-         "!health - 서버 상태 확인\n\n" +
          "[경기 조회]\n" +
          "!경기목록 - 이 방의 경기 목록 조회\n" +
          "  ※ 최근 7일 이내 경기만 표시\n\n" +
          "[멤버 조회]\n" +
-         "!멤버조회 [이름] - 멤버 정보 조회\n" +
-         "  예: !멤버조회 홍길동\n\n" +
+         "!멤버조회 [이름] [ID] - 멤버 정보 조회\n" +
+         "  예: !멤버조회 홍길동\n" +
+         "  예: !멤버조회 홍길동 MEM_12345678 (동명이인 구분)\n\n" +
          "[팀 조회]\n" +
          "!팀조회 [팀명] - 팀 정보 조회\n" +
          "  예: !팀조회 블루\n" +
-         "!팀확인 [이름] - 팀 확인 (생략 시 본인)\n" +
-         "  예: !팀확인 / !팀확인 홍길동\n\n" +
-         "[관리자 기능]\n" +
-         "※ 멤버/팀/경기 생성 및 삭제는 Admin 페이지에서 가능합니다.\n\n" +
+         "!팀확인 [이름] [ID] - 팀 확인 (생략 시 본인)\n" +
+         "  예: !팀확인 / !팀확인 홍길동\n" +
+         "  예: !팀확인 홍길동 MEM_12345678 (동명이인 구분)\n\n" +
          "[기타]\n" +
          "!도움말 - 이 메시지 표시";
 }
