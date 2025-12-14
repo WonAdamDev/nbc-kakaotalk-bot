@@ -432,9 +432,17 @@ function formatMemberTeamGetResponse(data) {
 
 // 팀 목록 응답 포맷팅
 function formatTeamListResponse(data) {
-  if (typeof data !== 'object') return data;
+  Log.d("[formatTeamListResponse] 데이터 타입: " + (typeof data));
+  Log.d("[formatTeamListResponse] data.teams 존재: " + (data && data.teams ? "yes" : "no"));
+  Log.d("[formatTeamListResponse] data.teams 길이: " + (data && data.teams ? data.teams.length : "N/A"));
+
+  if (typeof data !== 'object') {
+    Log.d("[formatTeamListResponse] 객체가 아님, 그대로 반환");
+    return data;
+  }
 
   if (!data.teams || data.teams.length === 0) {
+    Log.d("[formatTeamListResponse] 팀이 없음");
     return "이 방에는 등록된 팀이 없습니다.";
   }
 
@@ -444,15 +452,24 @@ function formatTeamListResponse(data) {
     result += (i + 1) + ". " + team.name + " (" + team.member_count + "명)\n";
   }
 
+  Log.d("[formatTeamListResponse] 결과: " + result);
   return result;
 }
 
 
 // 멤버 목록 응답 포맷팅
 function formatMemberListResponse(data) {
-  if (typeof data !== 'object') return data;
+  Log.d("[formatMemberListResponse] 데이터 타입: " + (typeof data));
+  Log.d("[formatMemberListResponse] data.members 존재: " + (data && data.members ? "yes" : "no"));
+  Log.d("[formatMemberListResponse] data.members 길이: " + (data && data.members ? data.members.length : "N/A"));
+
+  if (typeof data !== 'object') {
+    Log.d("[formatMemberListResponse] 객체가 아님, 그대로 반환");
+    return data;
+  }
 
   if (!data.members || data.members.length === 0) {
+    Log.d("[formatMemberListResponse] 멤버가 없음");
     return "이 방에는 등록된 멤버가 없습니다.";
   }
 
@@ -623,7 +640,7 @@ function formatMemberListResponse(data) {
   var roomName = responseData.room || "이 방";
 
   if (count === 0) {
-    return "등록된 멤버가 없습니다.\n!멤버생성 명령어로 멤버를 추가해주세요.";
+    return "등록된 멤버가 없습니다.";
   }
 
   var result = "=== " + roomName + " 멤버 목록 ===\n\n";
@@ -658,7 +675,7 @@ function formatTeamListResponse(data) {
   var roomName = responseData.room || "이 방";
 
   if (count === 0) {
-    return "생성된 팀이 없습니다.\n!팀생성 명령어로 팀을 추가해주세요.";
+    return "생성된 팀이 없습니다.";
   }
 
   var result = "=== " + roomName + " 팀 목록 ===\n\n";
@@ -688,7 +705,7 @@ function formatMemberListResponse(data) {
   var roomName = responseData.room || "이 방";
 
   if (count === 0) {
-    return "등록된 멤버가 없습니다.\n!멤버생성 명령어로 멤버를 추가해주세요.";
+    return "등록된 멤버가 없습니다.";
   }
 
   var result = "=== " + roomName + " 멤버 목록 ===\n\n";
@@ -723,7 +740,7 @@ function formatTeamListResponse(data) {
   var roomName = responseData.room || "이 방";
 
   if (count === 0) {
-    return "생성된 팀이 없습니다.\n!팀생성 명령어로 팀을 추가해주세요.";
+    return "생성된 팀이 없습니다.";
   }
 
   var result = "=== " + roomName + " 팀 목록 ===\n\n";
