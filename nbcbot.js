@@ -55,6 +55,7 @@ function loadConfig() {
 // 스크립트 로드 시점에 config 로드
 const CONFIG = loadConfig();
 const SERVER_BASE_URL = CONFIG.serverUrl;
+const FRONTEND_URL = CONFIG.frontendUrl;
 const REQUEST_TIMEOUT = CONFIG.timeout;
 
 /**
@@ -180,6 +181,16 @@ function response(room, msg, sender, isGroupChat, replier, imageDB, packageName)
         };
         response = sendRequest("/api/game/all", paramMap, HttpMethod.GET);
         response = formatGameListResponse(response);
+        break;
+
+      case "프론트엔드":
+      case "링크":
+      case "웹":
+        if (FRONTEND_URL) {
+          response = "NBC 봇 프론트엔드\n" + FRONTEND_URL + "\n\n※ 경기 생성 및 관리는 Admin 페이지에서 가능합니다.";
+        } else {
+          response = "프론트엔드 URL이 설정되지 않았습니다.";
+        }
         break;
 
       case "help":
@@ -616,9 +627,11 @@ function formatTeamListResponse(data) {
  */
 function getHelpMessage() {
   return "=== NBC 봇 사용 가능한 명령어 ===\n\n" +
-         "[경기 조회]\n" +
+         "[경기 관리]\n" +
          "!경기목록 - 이 방의 경기 목록 조회\n" +
-         "  ※ 최근 7일 이내 경기만 표시\n\n" +
+         "  ※ 최근 7일 이내 경기만 표시\n" +
+         "!링크 - 웹 페이지 링크 확인\n" +
+         "  ※ 경기 생성은 Admin 페이지에서 가능\n\n" +
          "[멤버 관리]\n" +
          "!멤버목록 - 이 방의 모든 멤버 조회\n" +
          "!멤버조회 [이름] [ID] - 멤버 정보 조회 (생략 시 본인)\n" +
