@@ -58,6 +58,91 @@ const SERVER_BASE_URL = CONFIG.serverUrl;
 const FRONTEND_URL = CONFIG.frontendUrl;
 const REQUEST_TIMEOUT = CONFIG.timeout;
 
+// ========== 예약 메시지 기능 ==========
+// 오늘의 예약 메시지 목록 (전역 변수)
+var todayScheduledMessages = [];
+var sentMessages = new Set(); // 중복 전송 방지
+var lastFetchDate = null; // 마지막으로 메시지를 가져온 날짜
+
+/**
+ * 오늘의 예약 메시지를 서버에서 가져오기
+ * 매일 첫 메시지 또는 날짜가 바뀌었을 때 실행
+ */
+function fetchTodayScheduledMessages(roomName) {
+  try {
+    const now = new Date();
+    const today = now.getFullYear() + '-' + padZero(now.getMonth() + 1) + '-' + padZero(now.getDate());
+
+    // 이미 오늘 날짜의 메시지를 가져왔으면 스킵
+    if (lastFetchDate === today) {
+      return;
+    }
+
+    const currentDay = now.getDay() === 0 ? 7 : now.getDay(); // 일요일=7, 월요일=1
+
+    // 서버에서 오늘의 예약 메시지 가져오기
+    const paramMap = {
+      room: roomName,
+      current_day: currentDay
+    };
+
+    const response = sendRequest("/api/scheduled-message/pending", paramMap, HttpMethod.GET);
+
+    if (response && typeof response === 'object') {
+      todayScheduledMessages = response.pending_messages || [];
+      lastFetchDate = today;
+      sentMessages.clear(); // 새로운 날의 시작이므로 전송 기록 초기화
+
+      Log.d("[예약메시지] 오늘의 예약 메시지 " + todayScheduledMessages.length + "개 로드 완료");
+
+      // 로드된 메시지 정보 로그
+      for (var i = 0; i < todayScheduledMessages.length; i++) {
+        Log.d("[예약메시지] " + todayScheduledMessages[i].scheduled_time + " - " + todayScheduledMessages[i].message);
+      }
+    } else {
+      Log.d("[예약메시지] 서버 응답 오류: " + JSON.stringify(response));
+    }
+  } catch (e) {
+    Log.e("[예약메시지] 로드 실패: " + e.message);
+  }
+}
+
+/**
+ * 현재 시각에 전송할 예약 메시지 확인 및 전송
+ */
+function checkAndSendScheduledMessages(roomName, replier) {
+  try {
+    const now = new Date();
+    const currentTime = padZero(now.getHours()) + ':' + padZero(now.getMinutes());
+
+    // 현재 시각에 맞는 메시지 찾기
+    for (var i = 0; i < todayScheduledMessages.length; i++) {
+      var msg = todayScheduledMessages[i];
+
+      if (msg.scheduled_time === currentTime && msg.is_active) {
+        const msgKey = msg.id + '_' + currentTime;
+
+        // 이미 전송한 메시지면 스킵
+        if (sentMessages.has(msgKey)) {
+          continue;
+        }
+
+        // 메시지 전송
+        try {
+          // replier.reply는 현재 방에만 전송되므로, Api.replyRoom 사용
+          Api.replyRoom(roomName, msg.message);
+          sentMessages.add(msgKey);
+          Log.d("[예약메시지] 전송 완료: " + currentTime + " - " + msg.message);
+        } catch (e) {
+          Log.e("[예약메시지] 전송 실패: " + e.message);
+        }
+      }
+    }
+  } catch (e) {
+    Log.e("[예약메시지] 체크 실패: " + e.message);
+  }
+}
+
 /**
  * (string) room
  * (string) sender
@@ -68,6 +153,16 @@ const REQUEST_TIMEOUT = CONFIG.timeout;
  * (string) packageName
  */
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
+  // ========== 예약 메시지 자동 전송 ==========
+  // 매 메시지마다 예약 메시지 확인 및 전송
+  // (부하가 적고 안정적인 방법)
+  try {
+    fetchTodayScheduledMessages(room); // 날짜가 바뀌었으면 새로 로드
+    checkAndSendScheduledMessages(room, replier); // 현재 시각에 전송할 메시지 확인
+  } catch (e) {
+    Log.e("[예약메시지] 자동 전송 오류: " + e.message);
+  }
+  // ==========================================
   // 명령어 체크 (!로 시작하는지)
   if (!msg.startsWith("!")) {
     return; // 명령어가 아니면 무시
@@ -676,6 +771,12 @@ function getDetailedHelpMessage() {
          "  예) !팀확인\n" +
          "  예) !팀확인 홍길동\n" +
          "  예) !팀확인 홍길동 MEM_12345678\n\n" +
+         "━━━━━━━━━━━━━━━━━━━\n\n" +
+         "📢 자동 기능\n" +
+         "• 예약 메시지 자동 전송\n" +
+         "  → Admin 페이지에서 설정한\n" +
+         "     시간에 자동으로 메시지 전송\n" +
+         "  → 매일 첫 메시지 수신 시 로드\n\n" +
          "💡 동명이인은 ID로 구분합니다";
 }
 
@@ -694,3 +795,54 @@ function onResume(activity) {}
 function onPause(activity) {}
 
 function onStop(activity) {}
+
+/*
+ * ========================================
+ * 📢 예약 메시지 기능 사용 방법
+ * ========================================
+ *
+ * 1. 관리자 페이지에서 예약 메시지 등록
+ *    - Admin Dashboard → "예약 메시지" 탭
+ *    - 메시지 내용, 전송 시각, 요일 설정
+ *    - "활성화" 상태로 저장
+ *
+ * 2. 봇 동작 방식
+ *    - 매일 첫 메시지 수신 시 서버에서 오늘의 예약 메시지 로드
+ *    - 매 메시지 수신마다 현재 시각 체크
+ *    - 예약 시각이 되면 자동으로 메시지 전송
+ *
+ * 3. 로그 확인
+ *    - 메신저 R 앱 → 로그 탭
+ *    - [예약메시지] 태그로 검색
+ *    - 로드, 전송 완료, 실패 로그 확인
+ *
+ * 4. 테스트 방법
+ *    - 관리자 페이지에서 현재 시각 + 2분으로 예약 메시지 생성
+ *    - 카카오톡 방에 아무 메시지 전송 (예약 메시지 로드 트리거)
+ *    - 2분 후 다시 아무 메시지 전송 (전송 시각 체크 트리거)
+ *    - 예약 메시지가 자동으로 전송됨
+ *
+ * 5. 주의사항
+ *    - Api.replyRoom 함수를 사용하므로 해당 방의 알림 권한 필요
+ *    - 중복 전송 방지를 위해 sentMessages Set 사용
+ *    - 날짜가 바뀌면 자동으로 새로운 예약 메시지 로드
+ *    - 메시지가 없는 방은 예약 메시지가 전송되지 않음
+ *      (첫 메시지 수신 시 로드되므로)
+ *
+ * 6. 문제 해결
+ *    Q: 예약 메시지가 전송되지 않아요
+ *    A: - 관리자 페이지에서 "활성화" 상태인지 확인
+ *       - 오늘 요일이 선택된 요일에 포함되는지 확인
+ *       - 로그에서 로드 성공 여부 확인
+ *       - 방에 메시지를 보내서 로드 & 체크 트리거
+ *
+ *    Q: 같은 메시지가 여러 번 전송돼요
+ *    A: - sentMessages Set이 정상 작동하는지 확인
+ *       - 봇 스크립트가 중복 실행되지 않는지 확인
+ *
+ *    Q: 정확한 시각에 전송되지 않아요
+ *    A: - 메시지 수신이 있어야 체크되므로 1분 오차 가능
+ *       - 더 정확한 전송이 필요하면 별도 타이머 구현 필요
+ *
+ * ========================================
+ */
