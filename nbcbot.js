@@ -63,10 +63,10 @@ const REQUEST_TIMEOUT = CONFIG.timeout;
 var todayScheduledMessages = [];
 var sentMessages = new Set(); // 중복 전송 방지
 var lastFetchDate = null; // 마지막으로 메시지를 가져온 날짜
+var registeredRooms = new Set(); // 등록된 방 목록
 
 /**
  * 오늘의 예약 메시지를 서버에서 가져오기
- * 매일 첫 메시지 또는 날짜가 바뀌었을 때 실행
  */
 function fetchTodayScheduledMessages(roomName) {
   try {
@@ -93,7 +93,7 @@ function fetchTodayScheduledMessages(roomName) {
       lastFetchDate = today;
       sentMessages.clear(); // 새로운 날의 시작이므로 전송 기록 초기화
 
-      Log.d("[예약메시지] 오늘의 예약 메시지 " + todayScheduledMessages.length + "개 로드 완료");
+      Log.d("[예약메시지] " + today + " 예약 메시지 " + todayScheduledMessages.length + "개 로드 완료");
 
       // 로드된 메시지 정보 로그
       for (var i = 0; i < todayScheduledMessages.length; i++) {
@@ -110,7 +110,7 @@ function fetchTodayScheduledMessages(roomName) {
 /**
  * 현재 시각에 전송할 예약 메시지 확인 및 전송
  */
-function checkAndSendScheduledMessages(roomName, replier) {
+function checkAndSendScheduledMessages(roomName) {
   try {
     const now = new Date();
     const currentTime = padZero(now.getHours()) + ':' + padZero(now.getMinutes());
@@ -129,7 +129,6 @@ function checkAndSendScheduledMessages(roomName, replier) {
 
         // 메시지 전송
         try {
-          // replier.reply는 현재 방에만 전송되므로, Api.replyRoom 사용
           Api.replyRoom(roomName, msg.message);
           sentMessages.add(msgKey);
           Log.d("[예약메시지] 전송 완료: " + currentTime + " - " + msg.message);
@@ -144,6 +143,38 @@ function checkAndSendScheduledMessages(roomName, replier) {
 }
 
 /**
+ * 예약 메시지 관리 타이머
+ * 1분마다 실행: 자정 체크, 메시지 전송 체크
+ */
+function scheduledMessageTimer() {
+  try {
+    const now = new Date();
+    const currentTime = padZero(now.getHours()) + ':' + padZero(now.getMinutes());
+    const today = now.getFullYear() + '-' + padZero(now.getMonth() + 1) + '-' + padZero(now.getDate());
+
+    // 자정(00:00)이거나 날짜가 바뀌었으면 새로 fetch
+    if (currentTime === '00:00' || lastFetchDate !== today) {
+      Log.d("[예약메시지] 날짜 변경 감지, 예약 메시지 재로드");
+      // 등록된 모든 방에 대해 fetch
+      registeredRooms.forEach(function(roomName) {
+        fetchTodayScheduledMessages(roomName);
+      });
+    }
+
+    // 현재 시각에 전송할 메시지 체크
+    registeredRooms.forEach(function(roomName) {
+      checkAndSendScheduledMessages(roomName);
+    });
+  } catch (e) {
+    Log.e("[예약메시지] 타이머 오류: " + e.message);
+  }
+}
+
+// 타이머 시작 (1분 = 60000ms)
+setInterval(scheduledMessageTimer, 60000);
+Log.d("[예약메시지] 타이머 시작 완료")
+
+/**
  * (string) room
  * (string) sender
  * (boolean) isGroupChat
@@ -153,16 +184,19 @@ function checkAndSendScheduledMessages(roomName, replier) {
  * (string) packageName
  */
 function response(room, msg, sender, isGroupChat, replier, imageDB, packageName) {
-  // ========== 예약 메시지 자동 전송 ==========
-  // 매 메시지마다 예약 메시지 확인 및 전송
-  // (부하가 적고 안정적인 방법)
+  // ========== 예약 메시지 - 방 등록 ==========
+  // 이 방에서 첫 메시지를 받으면 등록하고 예약 메시지 로드
   try {
-    fetchTodayScheduledMessages(room); // 날짜가 바뀌었으면 새로 로드
-    checkAndSendScheduledMessages(room, replier); // 현재 시각에 전송할 메시지 확인
+    if (!registeredRooms.has(room)) {
+      registeredRooms.add(room);
+      Log.d("[예약메시지] 방 등록: " + room);
+      fetchTodayScheduledMessages(room); // 봇 구동 후 첫 메시지 수신 시 로드
+    }
   } catch (e) {
-    Log.e("[예약메시지] 자동 전송 오류: " + e.message);
+    Log.e("[예약메시지] 방 등록 오류: " + e.message);
   }
   // ==========================================
+
   // 명령어 체크 (!로 시작하는지)
   if (!msg.startsWith("!")) {
     return; // 명령어가 아니면 무시
