@@ -86,7 +86,7 @@ function fetchTodayScheduledMessages(roomName) {
       current_day: currentDay
     };
 
-    const response = sendRequest("/api/scheduled-message/pending", paramMap, HttpMethod.GET);
+    const response = sendRequest("/api/scheduled-messages/pending", paramMap, HttpMethod.GET);
 
     if (response && typeof response === 'object') {
       todayScheduledMessages = response.pending_messages || [];
